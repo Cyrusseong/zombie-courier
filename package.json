@@ -1,10 +1,12 @@
 {
   "name": "zombie-courier",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Zombie apocalypse motorcycle courier runner game",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
