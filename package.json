@@ -1,0 +1,21 @@
+{
+  "name": "zombie-courier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:56321/git/Cyrusseong/zombie-courier"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
