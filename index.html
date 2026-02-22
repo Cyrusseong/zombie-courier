@@ -231,10 +231,20 @@
       margin-top: 20px;
     }
 
-    /* Show rotate overlay on portrait mobile */
+    /* Portrait mobile: no longer force landscape.
+       The game canvas scales via Phaser.Scale.FIT and is playable in portrait.
+       Show a small suggestion banner instead of a blocking overlay. */
     @media (orientation: portrait) and (max-width: 768px) and (hover: none) and (pointer: coarse) {
       #rotate-overlay {
         display: flex;
+      }
+    }
+
+    /* In portrait, make the suggestion auto-dismiss after animation */
+    @media (orientation: portrait) {
+      #rotate-overlay {
+        /* Semi-transparent instead of opaque, so game is visible behind */
+        background: rgba(10, 10, 18, 0.85);
       }
     }
 
@@ -334,10 +344,25 @@
   </div>
 
   <script>
-    // Allow dismissing the rotate overlay
-    document.getElementById('rotate-dismiss')?.addEventListener('click', function() {
-      document.getElementById('rotate-overlay').style.display = 'none';
-    });
+    // Allow dismissing the rotate overlay by tapping anywhere on it
+    var rotateOverlay = document.getElementById('rotate-overlay');
+    if (rotateOverlay) {
+      rotateOverlay.addEventListener('click', function() {
+        rotateOverlay.style.display = 'none';
+      });
+      // Auto-dismiss the portrait suggestion after 3 seconds
+      // (it's just a hint, not a blocker — game is playable in portrait)
+      setTimeout(function() {
+        if (rotateOverlay.style.display !== 'none') {
+          rotateOverlay.style.opacity = '0';
+          rotateOverlay.style.transition = 'opacity 0.5s ease';
+          setTimeout(function() {
+            rotateOverlay.style.display = 'none';
+            rotateOverlay.style.opacity = '1';
+          }, 500);
+        }
+      }, 3000);
+    }
 
     // Prevent default touch behaviors that interfere with the game
     document.addEventListener('touchmove', function(e) {
@@ -347,9 +372,9 @@
     }, { passive: false });
 
     // Prevent double-tap zoom on iOS
-    let lastTouchEnd = 0;
+    var lastTouchEnd = 0;
     document.addEventListener('touchend', function(e) {
-      const now = Date.now();
+      var now = Date.now();
       if (now - lastTouchEnd < 300) {
         e.preventDefault();
       }

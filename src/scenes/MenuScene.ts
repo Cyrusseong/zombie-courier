@@ -261,13 +261,19 @@ export class MenuScene extends Phaser.Scene {
     const isMobile = !this.sys.game.device.os.desktop;
 
     if (isMobile) {
-      this.add.text(GAME_WIDTH / 2, 475, 'TAP TOP: JUMP | TAP BOTTOM: SLIDE', {
+      this.add.text(GAME_WIDTH / 2, 472, 'TAP TOP HALF: JUMP', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '7px',
         color: '#334444',
       }).setOrigin(0.5).setDepth(2);
 
-      this.add.text(GAME_WIDTH / 2, 490, 'TAP RIGHT: ATTACK', {
+      this.add.text(GAME_WIDTH / 2, 486, 'HOLD BOTTOM-LEFT: SLIDE', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '7px',
+        color: '#334444',
+      }).setOrigin(0.5).setDepth(2);
+
+      this.add.text(GAME_WIDTH / 2, 500, 'TAP BOTTOM-RIGHT: ATTACK', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '7px',
         color: '#334444',
