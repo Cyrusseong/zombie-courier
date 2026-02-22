@@ -62,8 +62,11 @@ export class Zombie extends Phaser.GameObjects.Sprite {
   }
 
   die(): void {
+    // Capture scene reference BEFORE destroy() nullifies this.scene
+    const scene = this.scene;
+
     // Blood particles
-    const particles = this.scene.add.particles(this.x, this.y - 20, 'blood', {
+    const particles = scene.add.particles(this.x, this.y - 20, 'blood', {
       speed: { min: 50, max: 150 },
       angle: { min: 0, max: 360 },
       lifespan: 500,
@@ -72,12 +75,12 @@ export class Zombie extends Phaser.GameObjects.Sprite {
       alpha: { start: 1, end: 0 },
       gravityY: 200,
     });
-    this.scene.time.delayedCall(500, () => particles.destroy());
+    scene.time.delayedCall(500, () => particles.destroy());
 
     // Screen hitstop (brief pause)
-    this.scene.time.timeScale = 0.1;
-    this.scene.time.delayedCall(30, () => {
-      this.scene.time.timeScale = 1;
+    scene.time.timeScale = 0.1;
+    scene.time.delayedCall(30, () => {
+      scene.time.timeScale = 1;
     });
 
     this.destroy();
