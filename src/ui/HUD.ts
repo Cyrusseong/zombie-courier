@@ -205,8 +205,9 @@ export class HUD {
 
   private createDesktopControls(): void {
     const sound = SoundManager.getInstance();
+    const btnY = GAME_HEIGHT - 16;
 
-    this.muteIcon = this.scene.add.text(GAME_WIDTH - 14, GAME_HEIGHT - 16, sound.muted ? 'X' : '#', {
+    this.muteIcon = this.scene.add.text(GAME_WIDTH - 14, btnY, sound.muted ? 'X' : '#', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '8px',
       color: sound.muted ? '#552222' : '#005500',
@@ -220,6 +221,24 @@ export class HUD {
       sound.play('menuSelect');
     });
     this.container.add(this.muteIcon);
+
+    // Fullscreen toggle button (desktop)
+    if (document.fullscreenEnabled) {
+      const fsBtn = this.scene.add.text(GAME_WIDTH - 38, btnY, '[ ]', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '7px',
+        color: '#005500',
+      });
+      fsBtn.setOrigin(0.5, 0.5).setDepth(101);
+      fsBtn.setInteractive({ useHandCursor: true });
+      fsBtn.on('pointerover', () => fsBtn.setColor('#00ff41'));
+      fsBtn.on('pointerout', () => fsBtn.setColor('#005500'));
+      fsBtn.on('pointerdown', () => {
+        this.toggleFullscreen();
+        sound.play('menuSelect');
+      });
+      this.container.add(fsBtn);
+    }
   }
 
   private toggleFullscreen(): void {

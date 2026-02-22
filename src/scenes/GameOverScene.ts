@@ -282,6 +282,27 @@ export class GameOverScene extends Phaser.Scene {
       callback: () => hint.setVisible(!hint.visible),
       loop: true,
     });
+
+    // Fullscreen toggle button (bottom-right)
+    if (document.fullscreenEnabled) {
+      const fsBtn = this.add.text(GAME_WIDTH - 76, GAME_HEIGHT - 28, 'FULLSCREEN', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '6px',
+        color: '#334444',
+      });
+      fsBtn.setOrigin(0.5, 0.5).setDepth(2);
+      fsBtn.setInteractive({ useHandCursor: true });
+      fsBtn.on('pointerover', () => fsBtn.setColor('#00ff41'));
+      fsBtn.on('pointerout', () => fsBtn.setColor('#334444'));
+      fsBtn.on('pointerdown', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => { /* ignore */ });
+        } else {
+          document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
+        }
+        this.sound_.play('menuSelect');
+      });
+    }
   }
 
   private retry(): void {
