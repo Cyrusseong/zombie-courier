@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, PLAYER, DIFFICULTY, COLORS } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT, PLAYER, DIFFICULTY, COLORS, CRT } from '../config';
 import { Player } from '../objects/Player';
 import { Zombie } from '../objects/Zombie';
 import { Obstacle } from '../objects/Obstacle';
@@ -29,8 +29,10 @@ export class GameScene extends Phaser.Scene {
   private bgGround!: Phaser.GameObjects.TileSprite;
   private ground!: Phaser.Physics.Arcade.StaticBody;
 
-  // Vignette for damage
+  // CRT Effects
   private vignette!: Phaser.GameObjects.Rectangle;
+  private scanlineOverlay!: Phaser.GameObjects.Image;
+  private noiseOverlay!: Phaser.GameObjects.Image;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -49,7 +51,7 @@ export class GameScene extends Phaser.Scene {
     this.createPlayer();
     this.createSystems();
     this.createCollisions();
-    this.createVignette();
+    this.createCRTEffects();
 
     this.spawnManager.start(this.difficultyMultiplier);
   }
@@ -129,9 +131,21 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.spawnManager.zombies, this.ground as unknown as Phaser.Physics.Arcade.StaticBody);
   }
 
-  private createVignette(): void {
+  private createCRTEffects(): void {
+    // Damage vignette (red overlay for low HP)
     this.vignette = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0);
     this.vignette.setDepth(90);
+
+    // Scanline overlay
+    this.scanlineOverlay = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'scanlines');
+    this.scanlineOverlay.setAlpha(0.06);
+    this.scanlineOverlay.setDepth(91);
+
+    // Noise overlay (subtle static)
+    this.noiseOverlay = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'noise');
+    this.noiseOverlay.setAlpha(CRT.NOISE_ALPHA);
+    this.noiseOverlay.setDepth(92);
+    this.noiseOverlay.setBlendMode(Phaser.BlendModes.ADD);
   }
 
   update(_time: number, delta: number): void {
@@ -188,13 +202,29 @@ export class GameScene extends Phaser.Scene {
       this.fuel
     );
 
+    // CRT Effects update
+    this.updateCRTEffects();
+  }
+
+  private updateCRTEffects(): void {
     // Vignette based on HP
     const hpRatio = this.player.hp / this.player.maxHp;
     if (hpRatio <= 0.34) {
-      this.vignette.setAlpha(0.15 + Math.sin(Date.now() * 0.005) * 0.05);
+      this.vignette.setAlpha(0.12 + Math.sin(Date.now() * 0.005) * 0.04);
     } else {
       this.vignette.setAlpha(0);
     }
+
+    // Noise shimmer (subtle random offset for static feel)
+    if (Math.random() < 0.1) {
+      this.noiseOverlay.setPosition(
+        GAME_WIDTH / 2 + (Math.random() - 0.5) * 4,
+        GAME_HEIGHT / 2 + (Math.random() - 0.5) * 4
+      );
+    }
+
+    // Scanline subtle movement
+    this.scanlineOverlay.setAlpha(0.04 + Math.sin(Date.now() * 0.002) * 0.02);
   }
 
   private checkAttackHits(): void {
@@ -229,6 +259,9 @@ export class GameScene extends Phaser.Scene {
     const dead = this.player.takeDamage();
     obstacle.destroy();
 
+    // CRT glitch effect on hit
+    this.cameras.main.flash(60, 255, 0, 0, false);
+
     if (dead) {
       this.gameOver();
     }
@@ -245,6 +278,9 @@ export class GameScene extends Phaser.Scene {
       zombie.body.setVelocityX(200);
     }
 
+    // CRT glitch
+    this.cameras.main.flash(40, 255, 0, 0, false);
+
     if (dead) {
       this.gameOver();
     }
@@ -258,11 +294,11 @@ export class GameScene extends Phaser.Scene {
         break;
       case 'fuel':
         this.fuel = Math.min(100, this.fuel + 30);
-        this.hud.showScorePopup(item.x, item.y - 10, '+FUEL', '#39ff14');
+        this.hud.showScorePopup(item.x, item.y - 10, '+FUEL', '#00ff41');
         break;
       case 'health':
         this.player.heal(1);
-        this.hud.showScorePopup(item.x, item.y - 10, '+HP', '#ff3333');
+        this.hud.showScorePopup(item.x, item.y - 10, '+HP', '#ff2222');
         break;
     }
     item.collect();
@@ -300,24 +336,47 @@ export class GameScene extends Phaser.Scene {
     // Slow motion death
     this.time.timeScale = 0.3;
 
-    // Death effects
+    // Death effects - more dramatic retro style
     this.cameras.main.shake(500, 0.02);
     this.cameras.main.flash(200, 255, 50, 50);
 
-    // Crack effect overlay
-    const crack = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, '💀', {
-      fontSize: '80px',
+    // Retro "DEAD" text instead of emoji
+    const deadText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'WASTED', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '32px',
+      color: '#ff2222',
+      stroke: '#000000',
+      strokeThickness: 4,
     });
-    crack.setOrigin(0.5);
-    crack.setDepth(101);
-    crack.setAlpha(0);
+    deadText.setOrigin(0.5);
+    deadText.setDepth(101);
+    deadText.setAlpha(0);
+
+    // Glow behind dead text
+    const deadGlow = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'WASTED', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '32px',
+      color: '#ff2222',
+    });
+    deadGlow.setOrigin(0.5);
+    deadGlow.setDepth(100);
+    deadGlow.setAlpha(0);
+    deadGlow.setScale(1.05);
 
     this.tweens.add({
-      targets: crack,
-      alpha: 1,
-      scaleX: 1.5,
-      scaleY: 1.5,
-      duration: 400,
+      targets: [deadText, deadGlow],
+      alpha: { value: 1, duration: 400 },
+      scaleX: { from: 0.5, to: 1.1, duration: 300, ease: 'Back.easeOut' },
+      scaleY: { from: 0.5, to: 1.1, duration: 300, ease: 'Back.easeOut' },
+    });
+
+    // Flash scanlines aggressively during death
+    this.tweens.add({
+      targets: this.scanlineOverlay,
+      alpha: { from: 0.15, to: 0.3 },
+      duration: 100,
+      yoyo: true,
+      repeat: 4,
     });
 
     this.time.delayedCall(1500, () => {
