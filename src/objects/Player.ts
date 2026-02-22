@@ -24,8 +24,8 @@ export class Player extends Phaser.GameObjects.Sprite {
     scene.physics.add.existing(this);
 
     this.body.setCollideWorldBounds(true);
-    this.body.setSize(48, 36);
-    this.body.setOffset(8, 16);  // offset.y increased by 12 to match texture Y shift
+    this.body.setSize(48, 48);
+    this.body.setOffset(8, 4);
     this.setOrigin(0.5, 1);
     this.setScale(1.5);
   }
@@ -68,8 +68,8 @@ export class Player extends Phaser.GameObjects.Sprite {
     if (!this.isSliding) return;
     this.isSliding = false;
     this.setTexture('player');
-    this.body.setSize(48, 36);
-    this.body.setOffset(8, 16);
+    this.body.setSize(48, 48);
+    this.body.setOffset(8, 4);
   }
 
   attack(): void {

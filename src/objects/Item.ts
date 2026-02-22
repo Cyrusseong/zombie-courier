@@ -54,6 +54,9 @@ export class Item extends Phaser.GameObjects.Sprite {
   }
 
   collect(): void {
+    // Disable body immediately to prevent double-collection
+    this.body.enable = false;
+
     // Pop animation
     this.scene.tweens.add({
       targets: this,
