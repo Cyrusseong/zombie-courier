@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, RETRO_UI } from '../config';
+import { SoundManager } from '../systems/SoundManager';
 
 interface GameOverData {
   score: number;
@@ -12,9 +13,11 @@ interface GameOverData {
 
 export class GameOverScene extends Phaser.Scene {
   private gameData!: GameOverData;
+  private sound_: SoundManager;
 
   constructor() {
     super({ key: 'GameOverScene' });
+    this.sound_ = SoundManager.getInstance();
   }
 
   init(data: GameOverData): void {
@@ -151,7 +154,7 @@ export class GameOverScene extends Phaser.Scene {
       });
       label.setDepth(2);
 
-      // Value (animated slide-in)
+      // Value (animated slide-in with sound)
       const valueText = this.add.text(cx + 140, sy, stat.value, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '12px',
@@ -168,6 +171,9 @@ export class GameOverScene extends Phaser.Scene {
         delay: 200 + i * 120,
         duration: 300,
         ease: 'Quad.easeOut',
+        onStart: () => {
+          this.sound_.play('menuSelect');
+        },
       });
     });
 
@@ -199,6 +205,7 @@ export class GameOverScene extends Phaser.Scene {
     retryBtn.on('pointerover', () => {
       retryBtn.setFillStyle(0x003300, 0.9);
       retryText.setColor('#33ff66');
+      this.sound_.play('buttonHover');
     });
     retryBtn.on('pointerout', () => {
       retryBtn.setFillStyle(0x001a00, 0.9);
@@ -221,6 +228,7 @@ export class GameOverScene extends Phaser.Scene {
     shareBtn.on('pointerover', () => {
       shareBtn.setFillStyle(0x0a1a2a, 0.9);
       shareText.setColor('#44ddff');
+      this.sound_.play('buttonHover');
     });
     shareBtn.on('pointerout', () => {
       shareBtn.setFillStyle(0x0a0a20, 0.9);
@@ -243,6 +251,7 @@ export class GameOverScene extends Phaser.Scene {
     menuBtn.on('pointerover', () => {
       menuBtn.setFillStyle(0x222222, 0.9);
       menuText.setColor('#888888');
+      this.sound_.play('buttonHover');
     });
     menuBtn.on('pointerout', () => {
       menuBtn.setFillStyle(0x111111, 0.8);
@@ -258,7 +267,10 @@ export class GameOverScene extends Phaser.Scene {
 
   private createFooter(): void {
     // Blinking hint
-    const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, 'PRESS SPACE TO CONTINUE', {
+    const isMobile = !this.sys.game.device.os.desktop;
+    const hintText = isMobile ? 'TAP RETRY TO CONTINUE' : 'PRESS SPACE TO CONTINUE';
+
+    const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, hintText, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '7px',
       color: '#334444',
@@ -273,6 +285,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private retry(): void {
+    this.sound_.play('menuStart');
     this.cameras.main.flash(80, 0, 255, 65, false);
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.time.delayedCall(300, () => {
@@ -281,6 +294,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private goToMenu(): void {
+    this.sound_.play('menuSelect');
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.time.delayedCall(300, () => {
       this.scene.start('MenuScene');
@@ -288,6 +302,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private share(): void {
+    this.sound_.play('menuSelect');
     const d = this.gameData;
     const text = `ZOMBIE COURIER\nScore: ${d.score.toLocaleString()} | Distance: ${d.distance}m | Kills: ${d.zombies}\nCan you beat my record?`;
 
