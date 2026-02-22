@@ -483,6 +483,113 @@ export class HUD {
     }
   }
 
+  /**
+   * Coin-to-score particle trail: a coin sprite flies along a bezier arc
+   * from pickup to the score display, leaving a sparkle trail,
+   * then impacts with a burst and score pulse.
+   */
+  showCoinTrail(startX: number, startY: number): void {
+    const endX = GAME_WIDTH / 2;
+    const endY = 14;
+
+    // Bezier control point — arcs upward with slight randomness
+    const ctrlX = (startX + endX) / 2 + (Math.random() - 0.5) * 60;
+    const ctrlY = Math.min(startY, endY) - 50 - Math.random() * 40;
+
+    // Flying coin sprite
+    const flyingCoin = this.scene.add.image(startX, startY, 'coin');
+    flyingCoin.setScale(1.5);
+    flyingCoin.setDepth(110);
+
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 450,
+      ease: 'Quad.In',
+      onUpdate: (tween) => {
+        const t = tween.getValue() ?? 0;
+        const inv = 1 - t;
+        // Quadratic bezier
+        const x = inv * inv * startX + 2 * inv * t * ctrlX + t * t * endX;
+        const y = inv * inv * startY + 2 * inv * t * ctrlY + t * t * endY;
+
+        flyingCoin.setPosition(x, y);
+        flyingCoin.setScale(1.5 * (1 - t * 0.5));
+        flyingCoin.setAngle(flyingCoin.angle + 18);
+
+        // Sparkle trail (retro pixel squares)
+        if (Math.random() < 0.6) {
+          const sparkle = this.scene.add.rectangle(
+            x + (Math.random() - 0.5) * 8,
+            y + (Math.random() - 0.5) * 8,
+            3, 3, 0xffd700, 0.8
+          );
+          sparkle.setDepth(109);
+          this.scene.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            scaleX: 0.2,
+            scaleY: 0.2,
+            duration: 250,
+            onComplete: () => sparkle.destroy(),
+          });
+        }
+      },
+      onComplete: () => {
+        flyingCoin.destroy();
+        this.scoreImpact(endX, endY);
+      },
+    });
+  }
+
+  private scoreImpact(x: number, y: number): void {
+    // Burst of gold sparks outward
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const spark = this.scene.add.rectangle(x, y, 3, 3, 0xffd700, 1);
+      spark.setDepth(110);
+      this.scene.tweens.add({
+        targets: spark,
+        x: x + Math.cos(angle) * 28,
+        y: y + Math.sin(angle) * 28,
+        alpha: 0,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        duration: 300,
+        ease: 'Quad.easeOut',
+        onComplete: () => spark.destroy(),
+      });
+    }
+
+    // Gold flash behind score
+    const flash = this.scene.add.rectangle(x, y, 80, 22, 0xffd700, 0.35);
+    flash.setDepth(99);
+    this.scene.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scaleX: 1.6,
+      scaleY: 1.6,
+      duration: 250,
+      onComplete: () => flash.destroy(),
+    });
+
+    // Score text pulse
+    this.scene.tweens.add({
+      targets: this.scoreText,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      duration: 80,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+    });
+
+    // Brief gold color flash on score
+    this.scoreText.setColor('#ffd700');
+    this.scene.time.delayedCall(150, () => {
+      this.scoreText.setColor('#00ff41');
+    });
+  }
+
   showScorePopup(x: number, y: number, text: string, color: string = '#00ff41'): void {
     const popup = this.scene.add.text(x, y, text, {
       fontFamily: '"Press Start 2P", monospace',

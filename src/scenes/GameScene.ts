@@ -327,6 +327,7 @@ export class GameScene extends Phaser.Scene {
       case 'coin':
         this.scoreManager.addCoin(10);
         this.hud.showScorePopup(item.x, item.y - 10, '+10', '#ffd700');
+        this.hud.showCoinTrail(item.x, item.y);
         this.sound_.play('coinCollect');
         break;
       case 'fuel':
