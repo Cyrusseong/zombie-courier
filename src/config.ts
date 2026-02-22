@@ -126,7 +126,7 @@ export const PHASER_CONFIG: Phaser.Types.Core.GameConfig = {
     },
   },
   input: {
-    activePointers: 2,
+    activePointers: 3,
   },
   render: {
     pixelArt: true,

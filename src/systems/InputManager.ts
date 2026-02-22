@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 
 export interface GameInputState {
   jump: boolean;
@@ -19,13 +19,13 @@ export class InputManager {
   } | null = null;
 
   private touchJump = false;
-  private touchSlide = false;
   private touchAttack = false;
-  private isMobile: boolean;
+
+  // Track which pointer ID is doing slide (for multi-touch correctness)
+  private slidePointerId: number = -1;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.isMobile = !scene.sys.game.device.os.desktop;
     this.setupKeyboard();
     this.setupTouch();
   }
@@ -46,20 +46,28 @@ export class InputManager {
 
   private setupTouch(): void {
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Use game coordinates (GAME_WIDTH/GAME_HEIGHT) consistently.
+      // Phaser FIT mode auto-transforms pointer.x/y to game coordinates.
       const midY = GAME_HEIGHT * 0.5;
-      const midX = this.scene.scale.width * 0.6;
+      const attackX = GAME_WIDTH * 0.6;
 
       if (pointer.y < midY) {
+        // Top half → jump
         this.touchJump = true;
-      } else if (pointer.x > midX) {
+      } else if (pointer.x > attackX) {
+        // Bottom-right → attack
         this.touchAttack = true;
       } else {
-        this.touchSlide = true;
+        // Bottom-left → slide (hold)
+        this.slidePointerId = pointer.id;
       }
     });
 
-    this.scene.input.on('pointerup', () => {
-      this.touchSlide = false;
+    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      // Only release slide if the SAME pointer that started it is released
+      if (pointer.id === this.slidePointerId) {
+        this.slidePointerId = -1;
+      }
     });
   }
 
@@ -86,18 +94,12 @@ export class InputManager {
       state.jump = true;
       this.touchJump = false;
     }
-    if (this.touchSlide) {
+    if (this.slidePointerId >= 0) {
       state.slide = true;
     }
     if (this.touchAttack) {
       state.attack = true;
       this.touchAttack = false;
-    }
-
-    // Mouse click = attack on desktop
-    if (!this.isMobile && this.scene.input.activePointer.isDown
-      && Phaser.Input.Keyboard.JustDown === Phaser.Input.Keyboard.JustDown) {
-      // handled by pointerdown above
     }
 
     return state;
@@ -106,5 +108,6 @@ export class InputManager {
   destroy(): void {
     this.scene.input.off('pointerdown');
     this.scene.input.off('pointerup');
+    this.slidePointerId = -1;
   }
 }
