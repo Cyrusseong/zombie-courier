@@ -24,7 +24,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     scene.physics.add.existing(this);
 
     this.body.setCollideWorldBounds(true);
-    this.body.setSize(48, 36);
+    this.body.setSize(48, 48);
     this.body.setOffset(8, 4);
     this.setOrigin(0.5, 1);
     this.setScale(1.5);
@@ -55,7 +55,7 @@ export class Player extends Phaser.GameObjects.Sprite {
       this.isSliding = true;
       this.setTexture('player_slide');
       this.body.setSize(48, 24);
-      this.body.setOffset(8, 6);
+      this.body.setOffset(8, 8);  // offset.y increased by 2 to match slide texture Y shift
 
       this.slideTimer?.destroy();
       this.slideTimer = this.scene.time.delayedCall(PLAYER.SLIDE_DURATION, () => {
@@ -68,7 +68,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     if (!this.isSliding) return;
     this.isSliding = false;
     this.setTexture('player');
-    this.body.setSize(48, 36);
+    this.body.setSize(48, 48);
     this.body.setOffset(8, 4);
   }
 

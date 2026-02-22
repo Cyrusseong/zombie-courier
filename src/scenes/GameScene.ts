@@ -91,7 +91,7 @@ export class GameScene extends Phaser.Scene {
 
   private createGround(): void {
     // Invisible ground platform
-    const groundZone = this.add.zone(GAME_WIDTH / 2, PLAYER.GROUND_Y, GAME_WIDTH * 2, 20);
+    const groundZone = this.add.zone(GAME_WIDTH / 2, PLAYER.GROUND_Y + 10, GAME_WIDTH * 2, 20);
     this.physics.add.existing(groundZone, true);
     this.ground = groundZone.body as Phaser.Physics.Arcade.StaticBody;
   }

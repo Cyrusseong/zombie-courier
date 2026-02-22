@@ -96,77 +96,79 @@ export class BootScene extends Phaser.Scene {
   // ─── PLAYER ASSETS ───────────────────────────────
   private generatePlayerAssets(): void {
     // --- Player (motorcycle + rider) - retro pixel style ---
+    // NOTE: All Y coords shifted +12 from original to fit head/helmet in texture
     let g = this.gfx();
     // Wheels - darker with bright rim
     g.fillStyle(0x222222);
-    g.fillCircle(10, 28, 10);
-    g.fillCircle(50, 28, 10);
+    g.fillCircle(10, 40, 10);
+    g.fillCircle(50, 40, 10);
     g.lineStyle(1, 0x00ff41, 0.6);  // Green neon rim
-    g.strokeCircle(10, 28, 10);
-    g.strokeCircle(50, 28, 10);
+    g.strokeCircle(10, 40, 10);
+    g.strokeCircle(50, 40, 10);
     // Spokes
     g.lineStyle(1, 0x444444);
-    g.lineBetween(10, 18, 10, 38);
-    g.lineBetween(0, 28, 20, 28);
-    g.lineBetween(50, 18, 50, 38);
-    g.lineBetween(40, 28, 60, 28);
+    g.lineBetween(10, 30, 10, 50);
+    g.lineBetween(0, 40, 20, 40);
+    g.lineBetween(50, 30, 50, 50);
+    g.lineBetween(40, 40, 60, 40);
     // Body - dark with neon accents
     g.fillStyle(0xbb2222);
-    g.fillRect(12, 14, 36, 10);
+    g.fillRect(12, 26, 36, 10);
     // Engine block
     g.fillStyle(0x444444);
-    g.fillRect(20, 18, 14, 10);
+    g.fillRect(20, 30, 14, 10);
     g.fillStyle(0x333333);
-    g.fillRect(22, 20, 10, 6);
+    g.fillRect(22, 32, 10, 6);
     // Handlebar
     g.fillStyle(0x666666);
-    g.fillRect(44, 6, 4, 12);
+    g.fillRect(44, 18, 4, 12);
     // Headlight (neon green)
     g.fillStyle(0x00ff41);
-    g.fillRect(46, 8, 4, 4);
+    g.fillRect(46, 20, 4, 4);
     // Rider body
     g.fillStyle(0x6b3a1f);
-    g.fillRect(28, 0, 12, 14);
+    g.fillRect(28, 12, 12, 14);
     // Rider head
     g.fillStyle(0xdda577);
-    g.fillCircle(34, -4, 6);
+    g.fillCircle(34, 8, 6);
     // Helmet (dark with green visor)
     g.fillStyle(0x222222);
-    g.fillRect(28, -10, 12, 6);
+    g.fillRect(28, 2, 12, 6);
     g.fillStyle(0x00ff41, 0.8);
-    g.fillRect(30, -8, 8, 3);
+    g.fillRect(30, 4, 8, 3);
     // Package on back
     g.fillStyle(0x8b6914);
-    g.fillRect(14, 2, 10, 10);
+    g.fillRect(14, 14, 10, 10);
     g.fillStyle(0x00ff41, 0.5);
-    g.fillRect(16, 4, 6, 1);
-    g.fillRect(16, 7, 6, 1);
+    g.fillRect(16, 16, 6, 1);
+    g.fillRect(16, 19, 6, 1);
     // Exhaust glow
     g.fillStyle(0xff4400, 0.5);
-    g.fillRect(0, 24, 4, 3);
-    this.tex(g, 'player', 64, 40);
+    g.fillRect(0, 36, 4, 3);
+    this.tex(g, 'player', 64, 52);
 
     // --- Player slide frame ---
+    // NOTE: All Y coords shifted +2 to fit head in texture
     g = this.gfx();
     g.fillStyle(0x222222);
-    g.fillCircle(10, 18, 10);
-    g.fillCircle(50, 18, 10);
+    g.fillCircle(10, 20, 10);
+    g.fillCircle(50, 20, 10);
     g.lineStyle(1, 0x00ff41, 0.6);
-    g.strokeCircle(10, 18, 10);
-    g.strokeCircle(50, 18, 10);
+    g.strokeCircle(10, 20, 10);
+    g.strokeCircle(50, 20, 10);
     g.fillStyle(0xbb2222);
-    g.fillRect(12, 8, 36, 8);
+    g.fillRect(12, 10, 36, 8);
     g.fillStyle(0x444444);
-    g.fillRect(20, 10, 14, 8);
+    g.fillRect(20, 12, 14, 8);
     g.fillStyle(0x6b3a1f);
-    g.fillRect(28, 2, 16, 8);
+    g.fillRect(28, 4, 16, 8);
     g.fillStyle(0xdda577);
-    g.fillCircle(46, 4, 5);
+    g.fillCircle(46, 6, 5);
     g.fillStyle(0x222222);
-    g.fillRect(42, 0, 8, 4);
+    g.fillRect(42, 2, 8, 4);
     g.fillStyle(0x00ff41, 0.8);
-    g.fillRect(43, 1, 6, 2);
-    this.tex(g, 'player_slide', 64, 30);
+    g.fillRect(43, 3, 6, 2);
+    this.tex(g, 'player_slide', 64, 32);
   }
 
   // ─── ZOMBIE ASSETS ───────────────────────────────

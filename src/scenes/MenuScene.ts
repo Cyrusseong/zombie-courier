@@ -319,6 +319,27 @@ export class MenuScene extends Phaser.Scene {
         this.sound_.stopMenuBGM();
       }
     });
+
+    // Fullscreen toggle button (bottom-right, next to version)
+    if (document.fullscreenEnabled) {
+      const fsBtn = this.add.text(GAME_WIDTH - 60, GAME_HEIGHT - 22, 'FULLSCREEN', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '6px',
+        color: '#005500',
+      });
+      fsBtn.setOrigin(1, 0.5).setDepth(2);
+      fsBtn.setInteractive({ useHandCursor: true });
+      fsBtn.on('pointerover', () => fsBtn.setColor('#00ff41'));
+      fsBtn.on('pointerout', () => fsBtn.setColor('#005500'));
+      fsBtn.on('pointerdown', () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => { /* ignore */ });
+        } else {
+          document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
+        }
+        this.sound_.play('menuSelect');
+      });
+    }
   }
 
   private async startGame(): Promise<void> {
