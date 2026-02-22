@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, RETRO_UI } from '../config';
+import { SoundManager } from '../systems/SoundManager';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -18,6 +19,12 @@ export class HUD {
   // Mobile touch zone indicators
   private touchZones: Phaser.GameObjects.Graphics | null = null;
 
+  // Touch feedback flash
+  private touchFlash: Phaser.GameObjects.Rectangle | null = null;
+
+  // Control buttons (sound/fullscreen)
+  private muteIcon!: Phaser.GameObjects.Text;
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.isMobile = !scene.sys.game.device.os.desktop;
@@ -30,9 +37,11 @@ export class HUD {
 
     this.createTopBar();
     this.createBottomBar();
+    this.createControlButtons();
 
     if (this.isMobile) {
       this.createMobileTouchUI();
+      this.createTouchFeedback();
     }
   }
 
@@ -146,6 +155,52 @@ export class HUD {
     this.container.add(distLabel);
   }
 
+  private createControlButtons(): void {
+    const sound = SoundManager.getInstance();
+
+    // Sound mute toggle (top-right corner, small)
+    this.muteIcon = this.scene.add.text(GAME_WIDTH - 14, 24, sound.muted ? 'X' : '#', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '8px',
+      color: sound.muted ? '#552222' : '#005500',
+    });
+    this.muteIcon.setOrigin(1, 0.5);
+    this.muteIcon.setDepth(101);
+    this.muteIcon.setInteractive({ useHandCursor: true });
+    this.muteIcon.on('pointerdown', () => {
+      const muted = sound.toggleMute();
+      this.muteIcon.setText(muted ? 'X' : '#');
+      this.muteIcon.setColor(muted ? '#552222' : '#005500');
+      sound.play('menuSelect');
+    });
+    this.container.add(this.muteIcon);
+
+    // Fullscreen button (mobile only, next to mute)
+    if (this.isMobile && document.fullscreenEnabled) {
+      const fsBtn = this.scene.add.text(GAME_WIDTH - 30, 24, '[]', {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '7px',
+        color: '#005500',
+      });
+      fsBtn.setOrigin(1, 0.5);
+      fsBtn.setDepth(101);
+      fsBtn.setInteractive({ useHandCursor: true });
+      fsBtn.on('pointerdown', () => {
+        this.toggleFullscreen();
+        sound.play('menuSelect');
+      });
+      this.container.add(fsBtn);
+    }
+  }
+
+  private toggleFullscreen(): void {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => { /* ignore */ });
+    } else {
+      document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
+    }
+  }
+
   private createMobileTouchUI(): void {
     // Semi-transparent touch zone indicators that appear briefly then fade
     this.touchZones = this.scene.add.graphics();
@@ -199,6 +254,36 @@ export class HUD {
         slideLabel.destroy();
         attackLabel.destroy();
       },
+    });
+  }
+
+  private createTouchFeedback(): void {
+    // Flash rectangle for touch feedback (hidden by default)
+    this.touchFlash = this.scene.add.rectangle(0, 0, 80, 80, COLORS.CRT_GREEN, 0);
+    this.touchFlash.setDepth(98);
+
+    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (!this.touchFlash) return;
+      this.touchFlash.setPosition(pointer.x, pointer.y);
+
+      // Color based on zone
+      const midY = GAME_HEIGHT * 0.5;
+      const midX = GAME_WIDTH * 0.6;
+      if (pointer.y < midY) {
+        this.touchFlash.setFillStyle(COLORS.CRT_GREEN, 0.15);
+      } else if (pointer.x > midX) {
+        this.touchFlash.setFillStyle(COLORS.DANGER_RED, 0.15);
+      } else {
+        this.touchFlash.setFillStyle(COLORS.AMBER, 0.15);
+      }
+
+      this.scene.tweens.add({
+        targets: this.touchFlash,
+        alpha: { from: 0.15, to: 0 },
+        scaleX: { from: 1, to: 2 },
+        scaleY: { from: 1, to: 2 },
+        duration: 200,
+      });
     });
   }
 
@@ -330,5 +415,6 @@ export class HUD {
   destroy(): void {
     this.container.destroy();
     this.touchZones?.destroy();
+    this.touchFlash?.destroy();
   }
 }

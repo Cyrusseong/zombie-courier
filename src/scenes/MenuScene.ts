@@ -1,11 +1,15 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, RETRO_UI } from '../config';
+import { SoundManager } from '../systems/SoundManager';
 
 export class MenuScene extends Phaser.Scene {
   private blinkTimer: Phaser.Time.TimerEvent | null = null;
+  private sound_: SoundManager;
+  private audioInitialized = false;
 
   constructor() {
     super({ key: 'MenuScene' });
+    this.sound_ = SoundManager.getInstance();
   }
 
   create(): void {
@@ -24,6 +28,18 @@ export class MenuScene extends Phaser.Scene {
     this.createTitle();
     this.createMenuContent();
     this.createControls();
+    this.createSoundControls();
+
+    // Init audio on first user interaction (required for mobile)
+    this.input.once('pointerdown', () => this.initAudio());
+    this.input.keyboard?.once('keydown', () => this.initAudio());
+  }
+
+  private async initAudio(): Promise<void> {
+    if (this.audioInitialized) return;
+    this.audioInitialized = true;
+    await this.sound_.init();
+    this.sound_.startMenuBGM();
   }
 
   private createRetroFrame(): void {
@@ -189,6 +205,7 @@ export class MenuScene extends Phaser.Scene {
     playBtnBg.on('pointerover', () => {
       playBtnBg.setFillStyle(0x003300, 0.9);
       playText.setColor('#33ff66');
+      this.sound_.play('buttonHover');
     });
     playBtnBg.on('pointerout', () => {
       playBtnBg.setFillStyle(0x001a00, 0.9);
@@ -264,7 +281,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Version / credits
-    this.add.text(GAME_WIDTH - 30, GAME_HEIGHT - 22, 'v0.1', {
+    this.add.text(GAME_WIDTH - 30, GAME_HEIGHT - 22, 'v0.2', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '6px',
       color: '#223322',
@@ -275,10 +292,39 @@ export class MenuScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ENTER', () => this.startGame());
   }
 
-  private startGame(): void {
+  private createSoundControls(): void {
+    // Sound toggle in menu (bottom-left)
+    const soundIcon = this.add.text(36, GAME_HEIGHT - 22, this.sound_.muted ? 'SOUND: OFF' : 'SOUND: ON', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '6px',
+      color: this.sound_.muted ? '#552222' : '#005500',
+    });
+    soundIcon.setOrigin(0, 0.5).setDepth(2);
+    soundIcon.setInteractive({ useHandCursor: true });
+    soundIcon.on('pointerdown', async () => {
+      if (!this.audioInitialized) await this.initAudio();
+      const muted = this.sound_.toggleMute();
+      soundIcon.setText(muted ? 'SOUND: OFF' : 'SOUND: ON');
+      soundIcon.setColor(muted ? '#552222' : '#005500');
+      if (!muted) {
+        this.sound_.play('menuSelect');
+        this.sound_.startMenuBGM();
+      } else {
+        this.sound_.stopMenuBGM();
+      }
+    });
+  }
+
+  private async startGame(): Promise<void> {
     if (this.blinkTimer) {
       this.blinkTimer.destroy();
     }
+
+    // Init audio if not yet
+    if (!this.audioInitialized) await this.initAudio();
+
+    this.sound_.stopMenuBGM();
+    this.sound_.play('menuStart');
 
     // Retro fade effect (quick flash then fade)
     this.cameras.main.flash(100, 0, 255, 65, false);

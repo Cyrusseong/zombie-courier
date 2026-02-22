@@ -7,6 +7,7 @@ import { Item } from '../objects/Item';
 import { SpawnManager } from '../systems/SpawnManager';
 import { ScoreManager } from '../systems/ScoreManager';
 import { InputManager } from '../systems/InputManager';
+import { SoundManager } from '../systems/SoundManager';
 import { HUD } from '../ui/HUD';
 
 export class GameScene extends Phaser.Scene {
@@ -15,11 +16,13 @@ export class GameScene extends Phaser.Scene {
   private scoreManager!: ScoreManager;
   private inputManager!: InputManager;
   private hud!: HUD;
+  private sound_!: SoundManager;
 
   private gameSpeed: number = PLAYER.BASE_SPEED;
   private fuel: number = 100;
   private isGameOver: boolean = false;
   private difficultyMultiplier: number = 1;
+  private wasLowFuel: boolean = false;
 
   // Background layers
   private bgSky!: Phaser.GameObjects.TileSprite;
@@ -43,6 +46,9 @@ export class GameScene extends Phaser.Scene {
     this.gameSpeed = PLAYER.BASE_SPEED;
     this.fuel = 100;
     this.difficultyMultiplier = 1;
+    this.wasLowFuel = false;
+
+    this.sound_ = SoundManager.getInstance();
 
     this.cameras.main.fadeIn(300);
 
@@ -54,6 +60,11 @@ export class GameScene extends Phaser.Scene {
     this.createCRTEffects();
 
     this.spawnManager.start(this.difficultyMultiplier);
+
+    // Start engine sound and BGM
+    this.sound_.resume();
+    this.sound_.startEngine();
+    this.sound_.startBGM();
   }
 
   private createBackground(): void {
@@ -155,10 +166,19 @@ export class GameScene extends Phaser.Scene {
 
     // Input
     const input = this.inputManager.getState();
-    if (input.jump) this.player.jump();
-    if (input.slide) this.player.slide();
+    if (input.jump) {
+      this.player.jump();
+      if (this.player.isOnGround) this.sound_.play('jump');
+    }
+    if (input.slide) {
+      if (!this.player.isSliding) this.sound_.play('slide');
+      this.player.slide();
+    }
     else if (this.player.isSliding) this.player.endSlide();
-    if (input.attack) this.player.attack();
+    if (input.attack) {
+      this.player.attack();
+      this.sound_.play('attack');
+    }
 
     // Player update
     this.player.update();
@@ -189,8 +209,18 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Low fuel warning sound
+    const isLowFuel = this.fuel < 20;
+    if (isLowFuel !== this.wasLowFuel) {
+      this.sound_.setLowFuelWarning(isLowFuel);
+      this.wasLowFuel = isLowFuel;
+    }
+
     // Difficulty scaling
     this.updateDifficulty();
+
+    // Update engine sound pitch based on speed
+    this.sound_.updateEngineSpeed(this.gameSpeed);
 
     // Update HUD
     this.hud.update(
@@ -239,15 +269,19 @@ export class GameScene extends Phaser.Scene {
       if (Phaser.Geom.Rectangle.Overlaps(attackBounds, zombieBounds)) {
         const killed = zombie.takeDamage(PLAYER.ATTACK_DAMAGE);
         if (killed) {
+          this.sound_.play('zombieKill');
           const points = this.scoreManager.addZombieKill(zombie.scoreValue);
           this.hud.showScorePopup(zombie.x, zombie.y - 30, `+${points}`);
 
           if (this.scoreManager.combo >= 5) {
             this.hud.showComboAlert(this.scoreManager.combo);
+            this.sound_.play('comboAlert');
           }
 
           // Camera shake on kill
           this.cameras.main.shake(80, 0.005);
+        } else {
+          this.sound_.play('zombieHit');
         }
       }
     });
@@ -258,6 +292,7 @@ export class GameScene extends Phaser.Scene {
 
     const dead = this.player.takeDamage();
     obstacle.destroy();
+    this.sound_.play('playerHit');
 
     // CRT glitch effect on hit
     this.cameras.main.flash(60, 255, 0, 0, false);
@@ -272,6 +307,7 @@ export class GameScene extends Phaser.Scene {
     if (this.player.isAttacking) return;
 
     const dead = this.player.takeDamage();
+    this.sound_.play('playerHit');
 
     // Push zombie back
     if (zombie.body) {
@@ -291,14 +327,22 @@ export class GameScene extends Phaser.Scene {
       case 'coin':
         this.scoreManager.addCoin(10);
         this.hud.showScorePopup(item.x, item.y - 10, '+10', '#ffd700');
+        this.sound_.play('coinCollect');
         break;
       case 'fuel':
         this.fuel = Math.min(100, this.fuel + 30);
         this.hud.showScorePopup(item.x, item.y - 10, '+FUEL', '#00ff41');
+        this.sound_.play('fuelCollect');
+        // Turn off low fuel warning if above threshold
+        if (this.fuel >= 20 && this.wasLowFuel) {
+          this.sound_.setLowFuelWarning(false);
+          this.wasLowFuel = false;
+        }
         break;
       case 'health':
         this.player.heal(1);
         this.hud.showScorePopup(item.x, item.y - 10, '+HP', '#ff2222');
+        this.sound_.play('healthCollect');
         break;
     }
     item.collect();
@@ -328,6 +372,12 @@ export class GameScene extends Phaser.Scene {
   private gameOver(): void {
     if (this.isGameOver) return;
     this.isGameOver = true;
+
+    // Stop sounds
+    this.sound_.stopEngine();
+    this.sound_.setLowFuelWarning(false);
+    this.sound_.stopBGM();
+    this.sound_.play('gameOver');
 
     // Stop spawning
     this.spawnManager.stop();

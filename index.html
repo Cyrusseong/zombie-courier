@@ -7,6 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0a0a12" />
+  <meta name="screen-orientation" content="landscape" />
   <title>Zombie Courier - 좀비 택배</title>
   <meta name="description" content="좀비 아포칼립스 세계에서 오토바이 택배 기사가 되어 생존자들에게 물품을 배송하라!" />
   <meta property="og:title" content="Zombie Courier - 좀비 택배" />
@@ -37,6 +38,8 @@
       user-select: none;
       -webkit-user-select: none;
       font-family: 'Press Start 2P', monospace;
+      /* Prevent pull-to-refresh on mobile */
+      overscroll-behavior: none;
     }
 
     /* CRT Monitor Frame */
@@ -53,6 +56,9 @@
       display: block;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      /* Prevent iOS canvas blurring */
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     }
 
     /* CRT Scanline Overlay via CSS (on top of canvas) */
@@ -124,7 +130,7 @@
         0 0 15px rgba(0, 255, 65, 0.05);
     }
 
-    /* Mobile-specific touch area hints */
+    /* ─── MOBILE OPTIMIZATIONS ────────────────────── */
     @media (max-width: 768px), (hover: none) and (pointer: coarse) {
       #game-container::before {
         display: none;
@@ -138,9 +144,101 @@
           transparent 2px
         );
       }
+      /* Reduce CRT flicker on mobile for battery */
+      #game-container canvas {
+        animation: none;
+      }
+      /* Lighter vignette on small screens */
+      #crt-vignette {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 60%,
+          rgba(0, 0, 0, 0.25) 90%,
+          rgba(0, 0, 0, 0.5) 100%
+        );
+      }
     }
 
-    /* Loading screen before Phaser loads */
+    /* Small phone screens (< 480px height in landscape) */
+    @media (max-height: 480px) and (orientation: landscape) {
+      #crt-overlay {
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.03) 0px,
+          rgba(0, 0, 0, 0.03) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+      }
+    }
+
+    /* ─── ORIENTATION OVERLAY ─────────────────────── */
+    #rotate-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #0a0a12;
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    #rotate-overlay .rotate-icon {
+      width: 60px;
+      height: 60px;
+      border: 3px solid #00ff41;
+      border-radius: 8px;
+      position: relative;
+      animation: rotate-phone 2s ease-in-out infinite;
+    }
+
+    #rotate-overlay .rotate-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 4px;
+      background: #00ff41;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes rotate-phone {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-90deg); }
+      50% { transform: rotate(-90deg); }
+      75% { transform: rotate(0deg); }
+    }
+
+    #rotate-overlay .rotate-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: #00ff41;
+      text-align: center;
+      line-height: 1.8;
+      text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+    }
+
+    #rotate-overlay .rotate-dismiss {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: #556666;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    /* Show rotate overlay on portrait mobile */
+    @media (orientation: portrait) and (max-width: 768px) and (hover: none) and (pointer: coarse) {
+      #rotate-overlay {
+        display: flex;
+      }
+    }
+
+    /* ─── LOADING SCREEN ──────────────────────────── */
     #loading-screen {
       position: absolute;
       top: 0; left: 0;
@@ -192,7 +290,7 @@
       66% { content: '...'; }
     }
 
-    /* Safe area for notched phones */
+    /* ─── SAFE AREA FOR NOTCHED PHONES ────────────── */
     @supports (padding: env(safe-area-inset-top)) {
       #game-container {
         padding-top: env(safe-area-inset-top);
@@ -200,6 +298,21 @@
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
       }
+    }
+
+    /* ─── FULLSCREEN ──────────────────────────────── */
+    body:-webkit-full-screen {
+      width: 100vw;
+      height: 100vh;
+    }
+    body:fullscreen {
+      width: 100vw;
+      height: 100vh;
+    }
+    /* Hide orientation overlay when in landscape fullscreen */
+    body:-webkit-full-screen #rotate-overlay,
+    body:fullscreen #rotate-overlay {
+      display: none !important;
     }
   </style>
 </head>
@@ -212,6 +325,43 @@
   </div>
   <div id="crt-overlay"></div>
   <div id="crt-vignette"></div>
+
+  <!-- Orientation overlay for portrait mobile -->
+  <div id="rotate-overlay">
+    <div class="rotate-icon"></div>
+    <div class="rotate-text">ROTATE YOUR DEVICE<br>기기를 회전하세요</div>
+    <div class="rotate-dismiss" id="rotate-dismiss">TAP TO DISMISS</div>
+  </div>
+
+  <script>
+    // Allow dismissing the rotate overlay
+    document.getElementById('rotate-dismiss')?.addEventListener('click', function() {
+      document.getElementById('rotate-overlay').style.display = 'none';
+    });
+
+    // Prevent default touch behaviors that interfere with the game
+    document.addEventListener('touchmove', function(e) {
+      if (e.target === document.body || e.target.tagName === 'CANVAS') {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // Prevent double-tap zoom on iOS
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(e) {
+      const now = Date.now();
+      if (now - lastTouchEnd < 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    // Prevent context menu on long press
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+  </script>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
