@@ -487,56 +487,93 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showRevivalUI(): void {
+    // Restore timeScale — death slow-mo already played out
+    this.time.timeScale = 1;
+
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT * 0.5;
 
-    const panel = this.add.rectangle(cx, cy, 300, 140, 0x000000, 0.85)
+    // Dim overlay
+    const overlay = this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55)
+      .setDepth(109);
+
+    // Panel (tall enough for all content: from cy-75 to cy+82)
+    const panel = this.add.rectangle(cx, cy + 4, 290, 180, 0x000511, 0.97)
       .setStrokeStyle(2, 0xffd700).setDepth(110);
-    const titleTxt = this.add.text(cx, cy - 48, '코인으로 계속?', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '11px', color: '#ffd700',
-    }).setOrigin(0.5).setDepth(111);
-    const costTxt = this.add.text(cx, cy - 18,
-      `보유: ◎${this.scoreManager.coinBalance}  비용: ◎${REVIVAL.COST}`, {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '8px', color: '#cccccc',
-    }).setOrigin(0.5).setDepth(111);
 
-    let count = REVIVAL.COUNTDOWN;
-    const countTxt = this.add.text(cx, cy + 18, `${count}`, {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#ff4444',
-    }).setOrigin(0.5).setDepth(111);
-
-    const countTimer = this.time.addEvent({
-      delay: 1000, repeat: REVIVAL.COUNTDOWN - 1,
-      callback: () => {
-        count--;
-        countTxt.setText(`${count}`);
-        if (count <= 0) {
-          cleanup();
-          this.finishGameOver();
-        }
-      },
+    // Corner accents
+    const corners = this.add.graphics().setDepth(110);
+    corners.fillStyle(0xffd700);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sy]) => {
+      corners.fillRect(cx + sx * 143 - (sx > 0 ? 4 : 0), cy + 4 + sy * 88 - (sy > 0 ? 4 : 0), 4, 4);
     });
 
-    const yesBtn = this.add.rectangle(cx - 70, cy + 52, 120, 38, 0x001a00)
-      .setStrokeStyle(2, 0x00ff41).setInteractive({ useHandCursor: true }).setDepth(110);
-    this.add.text(cx - 70, cy + 52, '계속하기', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '9px', color: '#00ff41',
+    const titleTxt = this.add.text(cx, cy - 62, 'CONTINUE?', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px', color: '#ffd700',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(111);
+
+    // Coin balance bar
+    const balanceTxt = this.add.text(cx, cy - 34, `COINS: ${this.scoreManager.coinBalance}`, {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '9px', color: '#ffdd44',
+    }).setOrigin(0.5).setDepth(111);
+
+    const costLabel = this.add.text(cx, cy - 14, `COST: ${REVIVAL.COST} COINS`, {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '8px', color: '#888888',
+    }).setOrigin(0.5).setDepth(111);
+
+    // Countdown number — big and centered
+    let count = REVIVAL.COUNTDOWN;
+    const countTxt = this.add.text(cx, cy + 18, `${count}`, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '40px', color: '#ff4444',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(111);
+
+    // Use window.setInterval so countdown runs in real time (unaffected by timeScale)
+    const intervalId = window.setInterval(() => {
+      if (!countTxt.scene) { window.clearInterval(intervalId); return; }
+      count--;
+      countTxt.setText(`${count}`);
+      if (count <= 0) {
+        window.clearInterval(intervalId);
+        cleanup();
+        this.finishGameOver();
+      }
+    }, 1000);
+
+    // YES button
+    const yesBtn = this.add.rectangle(cx - 68, cy + 66, 116, 40, 0x001a00)
+      .setStrokeStyle(2, 0x00ff41).setInteractive({ useHandCursor: true }).setDepth(110);
+    const yesTxt = this.add.text(cx - 68, cy + 66, 'CONTINUE', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '8px', color: '#00ff41',
+    }).setOrigin(0.5).setDepth(111);
+    yesBtn.on('pointerover', () => { yesBtn.setFillStyle(0x003300); yesTxt.setColor('#44ff77'); });
+    yesBtn.on('pointerout', () => { yesBtn.setFillStyle(0x001a00); yesTxt.setColor('#00ff41'); });
     yesBtn.on('pointerdown', () => {
       if (!this.scoreManager.spendCoins(REVIVAL.COST)) return;
+      window.clearInterval(intervalId);
       cleanup();
       this.revivePlayer();
     });
 
-    const noBtn = this.add.rectangle(cx + 70, cy + 52, 120, 38, 0x1a0000)
+    // NO button
+    const noBtn = this.add.rectangle(cx + 68, cy + 66, 116, 40, 0x1a0000)
       .setStrokeStyle(1, 0x556666).setInteractive({ useHandCursor: true }).setDepth(110);
-    this.add.text(cx + 70, cy + 52, '포기', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '9px', color: '#556666',
+    const noTxt = this.add.text(cx + 68, cy + 66, 'GIVE UP', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '8px', color: '#556666',
     }).setOrigin(0.5).setDepth(111);
-    noBtn.on('pointerdown', () => { cleanup(); this.finishGameOver(); });
+    noBtn.on('pointerover', () => { noBtn.setFillStyle(0x2a0000); noTxt.setColor('#888888'); });
+    noBtn.on('pointerout', () => { noBtn.setFillStyle(0x1a0000); noTxt.setColor('#556666'); });
+    noBtn.on('pointerdown', () => {
+      window.clearInterval(intervalId);
+      cleanup();
+      this.finishGameOver();
+    });
 
-    const elements = [panel, titleTxt, costTxt, countTxt, yesBtn, noBtn];
-    const cleanup = () => { countTimer.destroy(); elements.forEach(e => e.destroy()); };
+    const elements = [overlay, panel, corners, titleTxt, balanceTxt, costLabel, countTxt, yesBtn, yesTxt, noBtn, noTxt];
+    const cleanup = () => { elements.forEach(e => e.destroy()); };
   }
 
   private revivePlayer(): void {
