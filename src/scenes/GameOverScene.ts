@@ -22,6 +22,27 @@ export class GameOverScene extends Phaser.Scene {
 
   init(data: GameOverData): void {
     this.gameData = data;
+    this.submitScore(data.score);
+  }
+
+  private submitScore(score: number): void {
+    try {
+      const playerId = localStorage.getItem('3sec-player-id');
+      if (!playerId) return;
+
+      fetch('https://3sec.games/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'zombie-courier',
+          score,
+          playerId,
+          name: 'Courier',
+        }),
+      }).catch(() => { /* network errors are silent */ });
+    } catch {
+      // localStorage not available
+    }
   }
 
   create(): void {

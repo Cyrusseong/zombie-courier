@@ -236,6 +236,46 @@ export class BootScene extends Phaser.Scene {
     g.lineBetween(0, 14, 5, 14);
     g.lineBetween(0, 18, 3, 18);
     this.tex(g, 'zombie_runner', 36, 42);
+
+    // --- Fat Zombie (wide, slow, tanky) ---
+    g = this.gfx();
+    // Wide body
+    g.fillStyle(0x227722);
+    g.fillRect(4, 14, 24, 22);
+    // Belly sag
+    g.fillStyle(0x1a5c1a);
+    g.fillRect(6, 24, 20, 12);
+    // Torn shirt
+    g.fillStyle(0x334433);
+    g.fillRect(4, 14, 24, 6);
+    // Big round head
+    g.fillCircle(16, 8, 10);
+    g.fillStyle(0x338833);
+    g.fillCircle(16, 8, 10);
+    // Wound / exposed flesh
+    g.fillStyle(0x882222);
+    g.fillRect(10, 16, 5, 4);
+    g.fillRect(18, 18, 4, 3);
+    // Thick arms
+    g.fillStyle(0x227722);
+    g.fillRect(0, 16, 6, 16);
+    g.fillRect(26, 14, 6, 18);
+    // Chubby hands
+    g.fillStyle(0x338833);
+    g.fillRect(0, 32, 7, 5);
+    g.fillRect(25, 32, 7, 5);
+    // Stubby legs
+    g.fillStyle(0x1a5c1a);
+    g.fillRect(5, 36, 9, 10);
+    g.fillRect(18, 36, 9, 10);
+    // Glowing red eyes (small, beady)
+    g.fillStyle(0xff0000);
+    g.fillRect(11, 5, 3, 3);
+    g.fillRect(18, 5, 3, 3);
+    g.fillStyle(0xff4444, 0.4);
+    g.fillCircle(12, 6, 3);
+    g.fillCircle(19, 6, 3);
+    this.tex(g, 'zombie_fat', 36, 48);
   }
 
   // ─── OBSTACLE ASSETS ─────────────────────────────

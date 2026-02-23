@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ZOMBIE_TYPES, GAME_WIDTH } from '../config';
 
-export type ZombieType = 'NORMAL' | 'RUNNER';
+export type ZombieType = 'NORMAL' | 'RUNNER' | 'FAT';
 
 export class Zombie extends Phaser.GameObjects.Sprite {
   declare body: Phaser.Physics.Arcade.Body;
@@ -13,7 +13,7 @@ export class Zombie extends Phaser.GameObjects.Sprite {
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType) {
     const config = ZOMBIE_TYPES[type];
-    const textureKey = type === 'NORMAL' ? 'zombie_normal' : 'zombie_runner';
+    const textureKey = type === 'NORMAL' ? 'zombie_normal' : type === 'RUNNER' ? 'zombie_runner' : 'zombie_fat';
 
     super(scene, x, y, textureKey);
 
@@ -25,13 +25,16 @@ export class Zombie extends Phaser.GameObjects.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    this.body.setSize(24, 36);
-    this.body.setOffset(4, 6);
-    this.setOrigin(0.5, 1);
-    this.setScale(1.3);
-
-    if (type === 'RUNNER') {
-      this.setScale(1.2);
+    if (type === 'FAT') {
+      this.body.setSize(32, 40);
+      this.body.setOffset(4, 4);
+      this.setOrigin(0.5, 1);
+      this.setScale(1.5);
+    } else {
+      this.body.setSize(24, 36);
+      this.body.setOffset(4, 6);
+      this.setOrigin(0.5, 1);
+      this.setScale(type === 'RUNNER' ? 1.2 : 1.3);
     }
 
     // Wobble animation

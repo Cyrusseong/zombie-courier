@@ -64,8 +64,13 @@ export class SpawnManager {
     const x = GAME_WIDTH + 40 + Math.random() * 100;
     const y = this.groundY;
 
-    // Runner zombies after distance threshold (managed by GameScene)
-    const type: ZombieType = multiplier > 1.3 && Math.random() < 0.35 ? 'RUNNER' : 'NORMAL';
+    // Runner and Fat zombies unlock at higher difficulty
+    let type: ZombieType = 'NORMAL';
+    if (multiplier > 1.3) {
+      const roll = Math.random();
+      if (roll < 0.30) type = 'RUNNER';
+      else if (roll < 0.45 && multiplier > 1.8) type = 'FAT';
+    }
 
     const zombie = new Zombie(this.scene, x, y, type);
     this.zombies.add(zombie);
