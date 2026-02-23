@@ -55,7 +55,9 @@ export class Player extends Phaser.GameObjects.Sprite {
       this.isSliding = true;
       this.setTexture('player_slide');
       this.body.setSize(48, 24);
-      this.body.setOffset(8, 28); // offset.y=28 keeps body.bottom at same ground contact point as standing
+      // player_slide texture is 40×24 so displayOriginY=24 (not 40).
+      // offset.y=12: body.bottom = 564 + 1.5*(12-24) + 36 = 582 = zone.top ✓
+      this.body.setOffset(8, 12);
 
       this.slideTimer?.destroy();
       this.slideTimer = this.scene.time.delayedCall(PLAYER.SLIDE_DURATION, () => {
