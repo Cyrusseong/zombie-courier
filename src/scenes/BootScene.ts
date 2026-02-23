@@ -25,7 +25,7 @@ export class BootScene extends Phaser.Scene {
     const cy = GAME_HEIGHT / 2;
 
     // Retro terminal-style loading
-    const termBg = this.add.rectangle(cx, cy, 340, 120, 0x000000, 0.9);
+    const termBg = this.add.rectangle(cx, cy, 300, 120, 0x000000, 0.9);
     termBg.setStrokeStyle(2, COLORS.CRT_GREEN);
 
     // Terminal header
@@ -36,15 +36,15 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Loading bar border
-    this.add.rectangle(cx, cy, 280, 20, 0x000000)
+    this.add.rectangle(cx, cy, 240, 20, 0x000000)
       .setStrokeStyle(1, COLORS.CRT_GREEN_DIM);
 
     // Loading bar fill
-    const bar = this.add.rectangle(cx - 138, cy, 0, 16, COLORS.CRT_GREEN);
+    const bar = this.add.rectangle(cx - 118, cy, 0, 16, COLORS.CRT_GREEN);
     bar.setOrigin(0, 0.5);
 
     this.load.on('progress', (value: number) => {
-      bar.width = 276 * value;
+      bar.width = 236 * value;
     });
 
     // Loading percentage text
@@ -83,6 +83,25 @@ export class BootScene extends Phaser.Scene {
     g.destroy();
   }
 
+  // ASCII 컬러맵으로 픽셀아트 스프라이트 생성
+  private drawPixelMap(
+    g: Phaser.GameObjects.Graphics,
+    map: string[],
+    palette: Record<string, number>,
+    scale: number = 2
+  ): void {
+    for (let row = 0; row < map.length; row++) {
+      for (let col = 0; col < map[row].length; col++) {
+        const ch = map[row][col];
+        if (ch === '.' || ch === ' ') continue;
+        const color = palette[ch];
+        if (color === undefined) continue;
+        g.fillStyle(color);
+        g.fillRect(col * scale, row * scale, scale, scale);
+      }
+    }
+  }
+
   private generateAssets(): void {
     this.generatePlayerAssets();
     this.generateZombieAssets();
@@ -95,279 +114,291 @@ export class BootScene extends Phaser.Scene {
 
   // ─── PLAYER ASSETS ───────────────────────────────
   private generatePlayerAssets(): void {
-    // --- Player (motorcycle + rider) - retro pixel style ---
-    // NOTE: All Y coords shifted +12 from original to fit head/helmet in texture
+    // Player: 오토바이 + 라이더 side-view pixel art
+    // 32×20 픽셀맵 @ 2x = 64×40px
+    // H=헬멧 dark, V=visor green, S=skin, J=jacket brown
+    // R=red bike, E=engine gray, W=wheel dark, G=green rim
+    // P=package tan, F=fire orange, .=transparent
+    const playerMap = [
+      '................................',
+      '................................',
+      '..........HHHHHHHH..............',
+      '.........HVVVVVVVVH.............',
+      '.........HHHHHHHHHH.............',
+      '..........SSSSSSS...............',
+      '..........JJJJJJJ..RRRRRRRRRR..',
+      '.........JJJJJJJJJ.RRRRRRRRRR..',
+      'PP.......JJJJJJJJJ.RE.RRRRR..G.',
+      'PP.......JJJJJJJJJ.RE.RRRRR..G.',
+      'PP........JJJJJJJ..RRRRRRRRRR..',
+      '...........JJJJJJJJRRRRRR......',
+      '...........JJJJJJJJR..G....GG..',
+      '............JJJJJJJR..G....GG..',
+      '............JJJJJJJ.WWWWW.WWWWW',
+      '.............JJJJJJ.W...W.W...W',
+      'F............JJJJJ..WWWWW.WWWWW',
+      'FF...................................',
+      '................................',
+      '................................',
+    ];
+    const playerPalette: Record<string, number> = {
+      H: 0x333333,
+      V: 0x00cc44,
+      S: 0xdda577,
+      J: 0x6b3a1f,
+      R: 0xbb2222,
+      E: 0x555555,
+      W: 0x222222,
+      G: 0x00ff41,
+      P: 0x8b6914,
+      F: 0xff5500,
+    };
     let g = this.gfx();
-    // Wheels - darker with bright rim
-    g.fillStyle(0x222222);
-    g.fillCircle(10, 40, 10);
-    g.fillCircle(50, 40, 10);
-    g.lineStyle(1, 0x00ff41, 0.6);  // Green neon rim
-    g.strokeCircle(10, 40, 10);
-    g.strokeCircle(50, 40, 10);
-    // Spokes
-    g.lineStyle(1, 0x444444);
-    g.lineBetween(10, 30, 10, 50);
-    g.lineBetween(0, 40, 20, 40);
-    g.lineBetween(50, 30, 50, 50);
-    g.lineBetween(40, 40, 60, 40);
-    // Body - dark with neon accents
-    g.fillStyle(0xbb2222);
-    g.fillRect(12, 26, 36, 10);
-    // Engine block
-    g.fillStyle(0x444444);
-    g.fillRect(20, 30, 14, 10);
-    g.fillStyle(0x333333);
-    g.fillRect(22, 32, 10, 6);
-    // Handlebar
-    g.fillStyle(0x666666);
-    g.fillRect(44, 18, 4, 12);
-    // Headlight (neon green)
-    g.fillStyle(0x00ff41);
-    g.fillRect(46, 20, 4, 4);
-    // Rider body
-    g.fillStyle(0x6b3a1f);
-    g.fillRect(28, 12, 12, 14);
-    // Rider head
-    g.fillStyle(0xdda577);
-    g.fillCircle(34, 8, 6);
-    // Helmet (dark with green visor)
-    g.fillStyle(0x222222);
-    g.fillRect(28, 2, 12, 6);
-    g.fillStyle(0x00ff41, 0.8);
-    g.fillRect(30, 4, 8, 3);
-    // Package on back
-    g.fillStyle(0x8b6914);
-    g.fillRect(14, 14, 10, 10);
-    g.fillStyle(0x00ff41, 0.5);
-    g.fillRect(16, 16, 6, 1);
-    g.fillRect(16, 19, 6, 1);
-    // Exhaust glow
-    g.fillStyle(0xff4400, 0.5);
-    g.fillRect(0, 36, 4, 3);
-    this.tex(g, 'player', 64, 52);
+    this.drawPixelMap(g, playerMap, playerPalette, 2);
+    this.tex(g, 'player', 64, 40);
 
-    // --- Player slide frame ---
-    // NOTE: All Y coords shifted +2 to fit head in texture
+    // Player slide: flattened pose (20×12 pixels @ 2x = 40×24px)
+    const slideMap = [
+      '....................',
+      '..HHHHHHH...........',
+      '.HVVVVVVVH..........',
+      '.HHHHHHHHHSSSS......',
+      '..JJJJJJJJJJJJRRRR.',
+      'PJJJJJJJJJJJJJREER.',
+      'PJJJJJJJJJJJJJRRRR.',
+      'PP.JJJJJJJJJJJRRRR.',
+      '...JJJJJJJJJ.WWWWW.',
+      'F..JJJJJJJJJ.W...W.',
+      'FF...........WWWWW.',
+      '....................',
+    ];
     g = this.gfx();
-    g.fillStyle(0x222222);
-    g.fillCircle(10, 20, 10);
-    g.fillCircle(50, 20, 10);
-    g.lineStyle(1, 0x00ff41, 0.6);
-    g.strokeCircle(10, 20, 10);
-    g.strokeCircle(50, 20, 10);
-    g.fillStyle(0xbb2222);
-    g.fillRect(12, 10, 36, 8);
-    g.fillStyle(0x444444);
-    g.fillRect(20, 12, 14, 8);
-    g.fillStyle(0x6b3a1f);
-    g.fillRect(28, 4, 16, 8);
-    g.fillStyle(0xdda577);
-    g.fillCircle(46, 6, 5);
-    g.fillStyle(0x222222);
-    g.fillRect(42, 2, 8, 4);
-    g.fillStyle(0x00ff41, 0.8);
-    g.fillRect(43, 3, 6, 2);
-    this.tex(g, 'player_slide', 64, 32);
+    this.drawPixelMap(g, slideMap, playerPalette, 2);
+    this.tex(g, 'player_slide', 40, 24);
   }
 
   // ─── ZOMBIE ASSETS ───────────────────────────────
   private generateZombieAssets(): void {
-    // --- Normal Zombie (more detailed retro pixel art) ---
+    // Normal Zombie: 16×20 픽셀맵 @ 2x = 32×40px
+    // G=zombie green, D=dark green, R=red wound/eye
+    // C=clothes dark, B=bone/light, .=transparent
+    const normalMap = [
+      '....GGGGGGGG....',
+      '...GGGGGGGGGG...',
+      '...GGRRGGRRGG...',
+      '...GGGGGGGGG....',
+      '...GGGGGGGGGG...',
+      '..CCCCCCCCCCCC..',
+      '..CCCCCCCCCCCC..',
+      '.GCC..RRRR..CCG.',
+      '.GCC..RRRR..CCG.',
+      '..CCCCCCCCCCCC..',
+      '..CCCCCCCCCCCC..',
+      '.GCCCCCCCCCCCCG.',
+      '.GCCCCCCCCCCCCG.',
+      '..DDDDDDDDDDDD..',
+      '..DDDDDDDDDDDD..',
+      '..GGG....DDDD...',
+      '..GGG....GGGG...',
+      '..GGG....GGGG...',
+      '..GGG....GGGG...',
+      '................',
+    ];
+    const zombiePalette: Record<string, number> = {
+      G: 0x44bb44,
+      D: 0x227722,
+      R: 0xff0000,
+      C: 0x334433,
+      B: 0xccaa88,
+    };
     let g = this.gfx();
-    // Body
-    g.fillStyle(0x44bb44);
-    g.fillRect(8, 10, 16, 20);
-    // Torn clothes
-    g.fillStyle(0x334433);
-    g.fillRect(8, 10, 16, 4);
-    g.fillRect(10, 22, 4, 8);
-    // Head
-    g.fillCircle(16, 6, 8);
-    // Exposed bone/wound
-    g.fillStyle(0x882222);
-    g.fillRect(12, 14, 4, 3);
-    // Arms (reaching forward)
-    g.fillStyle(0x338833);
-    g.fillRect(4, 14, 6, 14);
-    g.fillRect(22, 12, 10, 4);
-    // Dangling hand
-    g.fillStyle(0x44bb44);
-    g.fillRect(30, 12, 4, 6);
-    // Legs
-    g.fillStyle(0x227722);
-    g.fillRect(8, 30, 7, 10);
-    g.fillRect(17, 30, 7, 10);
-    // Glowing red eyes
-    g.fillStyle(0xff0000);
-    g.fillCircle(13, 4, 2);
-    g.fillCircle(19, 4, 2);
-    // Eye glow
-    g.fillStyle(0xff4444, 0.5);
-    g.fillCircle(13, 4, 3);
-    g.fillCircle(19, 4, 3);
-    this.tex(g, 'zombie_normal', 36, 42);
+    this.drawPixelMap(g, normalMap, zombiePalette, 2);
+    this.tex(g, 'zombie_normal', 32, 40);
 
-    // --- Runner Zombie ---
+    // Runner Zombie: slimmer, leaning forward
+    const runnerMap = [
+      '....GGGGGG......',
+      '...GGGGGGGG.....',
+      '...GGRRGGRRG....',
+      '...GGGGGGGGG....',
+      '....GGGGGGGG....',
+      '...CCCCCCCCCC...',
+      '...CCCCCCCCCC...',
+      '..GC..RRRR.CCG..',
+      '..GC..RRRR.CCG..',
+      '...CCCCCCCCCC...',
+      '...CCCCCCCCCC...',
+      '..GCCCCCCCCCCG..',
+      '..GCCCCCCCCCCG..',
+      '...DDDDDDDDDD...',
+      '...DDDDDDDDDD...',
+      '...DDD...DDDD...',
+      '...GGG...GGGG...',
+      '...GGG...GGGG...',
+      '...GGG...GGGG...',
+      '................',
+    ];
     g = this.gfx();
-    g.fillStyle(0x88cc44);
-    g.fillRect(8, 10, 14, 18);
-    g.fillStyle(0x556633);
-    g.fillRect(8, 10, 14, 3);
-    g.fillCircle(15, 6, 7);
-    g.fillStyle(0x668833);
-    g.fillRect(3, 12, 6, 12);
-    g.fillRect(21, 10, 12, 4);
-    // Extended reach
-    g.fillStyle(0x88cc44);
-    g.fillRect(31, 10, 4, 5);
-    g.fillStyle(0x556622);
-    g.fillRect(8, 28, 6, 12);
-    g.fillRect(16, 28, 6, 12);
-    // Glowing eyes
-    g.fillStyle(0xff0000);
-    g.fillCircle(12, 4, 2);
-    g.fillCircle(18, 4, 2);
-    g.fillStyle(0xff4444, 0.5);
-    g.fillCircle(12, 4, 3);
-    g.fillCircle(18, 4, 3);
-    // Speed lines
-    g.lineStyle(1, 0x88cc44, 0.3);
-    g.lineBetween(0, 14, 5, 14);
-    g.lineBetween(0, 18, 3, 18);
-    this.tex(g, 'zombie_runner', 36, 42);
+    this.drawPixelMap(g, runnerMap, zombiePalette, 2);
+    this.tex(g, 'zombie_runner', 32, 40);
 
-    // --- Fat Zombie (wide, slow, tanky) ---
+    // Fat Zombie: 20×22 pixels @ 2x = 40×44px
+    const fatPalette: Record<string, number> = {
+      G: 0x338833,
+      D: 0x1a5c1a,
+      R: 0xff0000,
+      C: 0x334433,
+      B: 0x227722,
+    };
+    const fatMap = [
+      '.......GGGGGGGGG.......',
+      '......GGGGGGGGGGG......',
+      '......GGG..GG..GGG.....',
+      '......GGGRRGGRRGGGG....',
+      '......GGGGGGGGGGG......',
+      '......GGGGGGGGGGG......',
+      '.....CCCCCCCCCCCCCCC...',
+      '.....CCCCCCCCCCCCCCC...',
+      '.GGGGCCCCCCCCCCCCCCC...',
+      '.GGGGCCC.RRRRRR.CCC....',
+      '.GGGGCCC.RRRRRR.CCCGG..',
+      '.GGGGCCCCCCCCCCCCCCCGG..',
+      '.GGGGCCCCCCCCCCCCCCCGG..',
+      '......BBBBBBBBBBBBB.....',
+      '......BBBBBBBBBBBBB.....',
+      '......BBBBBBBBBBBBB.....',
+      '......BBBBBBBBBBBBB.....',
+      '......DDD...DDDDDDD.....',
+      '......DDD...DDDDDDD.....',
+      '......GGG...GGGGGGG.....',
+      '......GGG...GGGGGGG.....',
+      '.....................',
+    ];
     g = this.gfx();
-    // Wide body
-    g.fillStyle(0x227722);
-    g.fillRect(4, 14, 24, 22);
-    // Belly sag
-    g.fillStyle(0x1a5c1a);
-    g.fillRect(6, 24, 20, 12);
-    // Torn shirt
-    g.fillStyle(0x334433);
-    g.fillRect(4, 14, 24, 6);
-    // Big round head
-    g.fillCircle(16, 8, 10);
-    g.fillStyle(0x338833);
-    g.fillCircle(16, 8, 10);
-    // Wound / exposed flesh
-    g.fillStyle(0x882222);
-    g.fillRect(10, 16, 5, 4);
-    g.fillRect(18, 18, 4, 3);
-    // Thick arms
-    g.fillStyle(0x227722);
-    g.fillRect(0, 16, 6, 16);
-    g.fillRect(26, 14, 6, 18);
-    // Chubby hands
-    g.fillStyle(0x338833);
-    g.fillRect(0, 32, 7, 5);
-    g.fillRect(25, 32, 7, 5);
-    // Stubby legs
-    g.fillStyle(0x1a5c1a);
-    g.fillRect(5, 36, 9, 10);
-    g.fillRect(18, 36, 9, 10);
-    // Glowing red eyes (small, beady)
-    g.fillStyle(0xff0000);
-    g.fillRect(11, 5, 3, 3);
-    g.fillRect(18, 5, 3, 3);
-    g.fillStyle(0xff4444, 0.4);
-    g.fillCircle(12, 6, 3);
-    g.fillCircle(19, 6, 3);
-    this.tex(g, 'zombie_fat', 36, 48);
+    this.drawPixelMap(g, fatMap, fatPalette, 2);
+    this.tex(g, 'zombie_fat', 44, 44);
   }
 
   // ─── OBSTACLE ASSETS ─────────────────────────────
   private generateObstacleAssets(): void {
-    // --- Obstacle: barricade (retro hazard stripes) ---
+    // Barricade: 16×14 pixels @ 2x = 32×28px
+    // B=brown post, Y=yellow stripe, K=dark stripe, R=red top
+    const barricadeMap = [
+      'RRRRRRRRRRRRRRRR',
+      'BBYYYYYYYYYYYBBB',
+      'BBKYYKYYKYYKYYBB',
+      'BBYYYYYYYYYYYBBB',
+      'BBBBBBBBBBBBBBBB',
+      'BBYYYY....YYYYBB',
+      'BBKYYK....KYYKBB',
+      'BBYYYY....YYYYBB',
+      'BBBBBBBBBBBBBBBB',
+      'BBYYYYYYYYYYYBBB',
+      'BBKYYKYYKYYKYYBB',
+      'BBYYYYYYYYYYYBBB',
+      'RRRRRRRRRRRRRRRR',
+      'BB............BB',
+    ];
+    const barricadePalette: Record<string, number> = {
+      B: 0x4a2a0f,
+      Y: 0xffaa00,
+      K: 0x222222,
+      R: 0xff2222,
+    };
     let g = this.gfx();
-    g.fillStyle(0x6b3a1f);
-    g.fillRect(0, 0, 40, 30);
-    // Hazard stripes
-    g.fillStyle(0xffaa00);
-    g.fillRect(2, 4, 36, 6);
-    g.fillRect(2, 16, 36, 6);
-    // Warning triangles
-    for (let i = 0; i < 5; i++) {
-      g.fillStyle(0x222222);
-      g.fillTriangle(4 + i * 8, 9, 8 + i * 8, 5, 12 + i * 8, 9);
-    }
-    // Support posts
-    g.fillStyle(0x4a2a0f);
-    g.fillRect(4, 0, 6, 30);
-    g.fillRect(30, 0, 6, 30);
-    // Neon warning strip
-    g.fillStyle(0xff2222, 0.6);
-    g.fillRect(0, 0, 40, 2);
-    this.tex(g, 'obstacle_barricade', 40, 30);
+    this.drawPixelMap(g, barricadeMap, barricadePalette, 2);
+    this.tex(g, 'obstacle_barricade', 32, 28);
 
-    // --- Obstacle: broken road ---
+    // Broken road: 20×10 pixels @ 2x = 40×20px
+    const roadMap = [
+      '.......RRRRRR.......',
+      '......RRRRRRRR......',
+      '.....RRRRRRRRRR.....',
+      '....RRRR....RRRR....',
+      '...RRRR.KKK.RRRR...',
+      '..RRRR..KKK..RRRR..',
+      '.RRRRRRKKKKKRRRRRR.',
+      'RRRRRRRRKKRRRRRRRRRR',
+      'RRRRRRRRRRRRRRRRRRRR',
+      'RRRRRRRRRRRRRRRRRRRR',
+    ];
+    const roadPalette: Record<string, number> = {
+      R: 0x444444,
+      K: 0x222222,
+    };
     g = this.gfx();
-    g.fillStyle(0x444444);
-    g.fillTriangle(0, 20, 20, 0, 40, 20);
-    g.fillStyle(0x333333);
-    g.fillTriangle(5, 20, 20, 5, 35, 20);
-    // Crack lines
-    g.lineStyle(1, 0x222222);
-    g.lineBetween(15, 8, 20, 16);
-    g.lineBetween(22, 6, 28, 14);
-    // Danger glow
-    g.fillStyle(0xff4400, 0.2);
-    g.fillRect(8, 16, 24, 4);
+    this.drawPixelMap(g, roadMap, roadPalette, 2);
     this.tex(g, 'obstacle_road', 40, 20);
   }
 
   // ─── ITEM ASSETS ─────────────────────────────────
   private generateItemAssets(): void {
-    // --- Coin (retro pixel gold) ---
+    // Coin: 8×8 pixels @ 2x = 16×16px
+    const coinMap = [
+      '..YYYY..',
+      '.YYYYYY.',
+      'YYDYYYDY',
+      'YYYYDDYY',
+      'YYYYDDYY',
+      'YYDYYYDY',
+      '.YYYYYY.',
+      '..YYYY..',
+    ];
+    const coinPalette: Record<string, number> = {
+      Y: 0xffd700,
+      D: 0xcc8800,
+    };
     let g = this.gfx();
-    g.fillStyle(0xffd700);
-    g.fillCircle(8, 8, 8);
-    g.fillStyle(0xcc9900);
-    g.fillCircle(8, 8, 6);
-    g.fillStyle(0xffd700);
-    g.fillRect(6, 3, 4, 10);
-    // $ symbol
-    g.fillStyle(0xffee44);
-    g.fillRect(7, 5, 2, 6);
+    this.drawPixelMap(g, coinMap, coinPalette, 2);
     this.tex(g, 'coin', 16, 16);
 
-    // --- Fuel can (retro neon) ---
+    // Fuel: 8×10 pixels @ 2x = 16×20px
+    const fuelMap = [
+      '...RR...',
+      '..RRRR..',
+      '..RRRR..',
+      '.RRRRRR.',
+      '.RWWWWR.',
+      '.RWWWWR.',
+      '.RWWWWR.',
+      '.RRRRRRR',
+      '.RRGGR..',
+      '.RRRRRR.',
+    ];
+    const fuelPalette: Record<string, number> = {
+      R: 0xdd3333,
+      W: 0xffffff,
+      G: 0x00ff41,
+    };
     g = this.gfx();
-    g.fillStyle(0xdd3333);
-    g.fillRect(2, 4, 12, 14);
-    g.fillStyle(0xaa0000);
-    g.fillRect(4, 0, 8, 4);
-    // F label (pixel)
-    g.fillStyle(0xffffff);
-    g.fillRect(5, 7, 6, 1);
-    g.fillRect(5, 7, 1, 7);
-    g.fillRect(5, 10, 4, 1);
-    // Neon glow line
-    g.fillStyle(0x00ff41, 0.4);
-    g.fillRect(2, 17, 12, 1);
-    this.tex(g, 'fuel', 16, 18);
+    this.drawPixelMap(g, fuelMap, fuelPalette, 2);
+    this.tex(g, 'fuel', 16, 20);
 
-    // --- Health kit (retro with green cross) ---
+    // Health: 8×8 pixels @ 2x = 16×16px (white+green cross)
+    const healthMap = [
+      'WWWWWWWW',
+      'WWWGGWWW',
+      'WWWGGWWW',
+      'WGGGGGGG',
+      'WGGGGGGG',
+      'WWWGGWWW',
+      'WWWGGWWW',
+      'WWWWWWWW',
+    ];
+    const healthPalette: Record<string, number> = {
+      W: 0xeeeeee,
+      G: 0x00cc00,
+    };
     g = this.gfx();
-    g.fillStyle(0xeeeeee);
-    g.fillRect(1, 1, 14, 14);
-    g.fillStyle(0x00cc00);
-    g.fillRect(6, 3, 4, 10);
-    g.fillRect(3, 6, 10, 4);
-    // Border
-    g.lineStyle(1, 0x00ff41, 0.5);
-    g.strokeRect(0, 0, 16, 16);
+    this.drawPixelMap(g, healthMap, healthPalette, 2);
     this.tex(g, 'health', 16, 16);
 
-    // --- Weapon pickup (bat) ---
+    // Weapon bat (keep for compatibility)
     g = this.gfx();
     g.fillStyle(0x6b3a1f);
     g.fillRect(2, 2, 6, 20);
     g.fillStyle(0x8b5a3f);
     g.fillRect(0, 0, 10, 8);
-    // Nail details
     g.fillStyle(0xaaaaaa);
     g.fillRect(2, 2, 2, 2);
     g.fillRect(6, 4, 2, 2);
@@ -376,7 +407,7 @@ export class BootScene extends Phaser.Scene {
 
   // ─── EFFECT ASSETS ───────────────────────────────
   private generateEffectAssets(): void {
-    // --- Attack swing effect (neon green arc) ---
+    // Attack swing effect (neon green arc)
     let g = this.gfx();
     g.lineStyle(3, 0x00ff41, 0.8);
     g.beginPath();
@@ -386,32 +417,31 @@ export class BootScene extends Phaser.Scene {
     g.beginPath();
     g.arc(0, 20, 24, -1.0, -0.4, false);
     g.strokePath();
-    // Extra glow line
     g.lineStyle(1, 0x00ff41, 0.3);
     g.beginPath();
     g.arc(0, 20, 34, -1.1, -0.35, false);
     g.strokePath();
     this.tex(g, 'attack_swing', 40, 40);
 
-    // --- Particle (neon square) ---
+    // Particle (neon square)
     g = this.gfx();
     g.fillStyle(0x00ff41);
     g.fillRect(0, 0, 4, 4);
     this.tex(g, 'particle', 4, 4);
 
-    // --- Dust particle ---
+    // Dust particle
     g = this.gfx();
     g.fillStyle(0x887755);
     g.fillCircle(3, 3, 3);
     this.tex(g, 'dust', 6, 6);
 
-    // --- Blood particle (brighter for retro) ---
+    // Blood particle
     g = this.gfx();
     g.fillStyle(0xcc0000);
     g.fillRect(0, 0, 4, 4);
     this.tex(g, 'blood', 4, 4);
 
-    // --- CRT Scanline texture ---
+    // CRT Scanline texture — portrait size
     g = this.gfx();
     for (let y = 0; y < GAME_HEIGHT; y += CRT.SCANLINE_GAP) {
       g.fillStyle(0x000000, CRT.SCANLINE_ALPHA);
@@ -419,7 +449,7 @@ export class BootScene extends Phaser.Scene {
     }
     this.tex(g, 'scanlines', GAME_WIDTH, GAME_HEIGHT);
 
-    // --- Static noise texture ---
+    // Static noise texture — portrait size
     g = this.gfx();
     for (let i = 0; i < 300; i++) {
       const nx = Math.random() * GAME_WIDTH;
@@ -435,174 +465,175 @@ export class BootScene extends Phaser.Scene {
   private generateBackgroundAssets(): void {
     let g: Phaser.GameObjects.Graphics;
 
-    // --- Background: Sky (darker, more stars, eerie moon) ---
+    // --- bg_sky: 405×720 portrait, night sky ---
     g = this.gfx();
-    // Gradient sky
     for (let y = 0; y < GAME_HEIGHT; y++) {
       const t = y / GAME_HEIGHT;
-      const r = Math.floor(6 + t * 4);
-      const gr = Math.floor(6 + t * 6);
-      const b = Math.floor(16 + t * 8);
+      const r = Math.floor(6 + t * 6);
+      const gr = Math.floor(6 + t * 8);
+      const b = Math.floor(18 + t * 10);
       g.fillStyle(Phaser.Display.Color.GetColor(r, gr, b));
       g.fillRect(0, y, GAME_WIDTH, 1);
     }
-    // Moon (eerie green-tinted)
+    // Moon (upper right)
     g.fillStyle(0xccddaa, 0.7);
-    g.fillCircle(760, 80, 32);
+    g.fillCircle(340, 90, 32);
     g.fillStyle(COLORS.SKY_DARK);
-    g.fillCircle(770, 74, 28);
+    g.fillCircle(350, 82, 28);
     // Moon glow
     g.fillStyle(0x88aa66, 0.1);
-    g.fillCircle(760, 80, 50);
-    // Stars (more and varied)
-    for (let i = 0; i < 80; i++) {
+    g.fillCircle(340, 90, 50);
+    // Stars (upper 60% of screen)
+    for (let i = 0; i < 100; i++) {
       const brightness = Math.random();
       const alpha = 0.3 + brightness * 0.7;
       const size = brightness > 0.8 ? 2 : 1;
       g.fillStyle(0xffffff, alpha);
       g.fillRect(
         Math.random() * GAME_WIDTH,
-        Math.random() * GAME_HEIGHT * 0.45,
+        Math.random() * GAME_HEIGHT * 0.6,
         size, size
       );
     }
     // Shooting star trail
     g.lineStyle(1, 0x00ff41, 0.15);
-    g.lineBetween(200, 40, 260, 70);
+    g.lineBetween(80, 60, 150, 100);
     this.tex(g, 'bg_sky', GAME_WIDTH, GAME_HEIGHT);
 
-    // --- Background: Far buildings (ruined silhouettes) ---
+    // --- bg_far: 810×720 (2x wide for tiling), tall distant buildings ---
+    const farW = GAME_WIDTH * 2;
     g = this.gfx();
     g.fillStyle(0x060610, 0);
-    g.fillRect(0, 0, GAME_WIDTH * 2, GAME_HEIGHT);
-    for (let i = 0; i < 20; i++) {
-      const bx = i * 100 + Math.random() * 40;
-      const bh = 80 + Math.random() * 160;
-      const bw = 30 + Math.random() * 50;
-      // Building
+    g.fillRect(0, 0, farW, GAME_HEIGHT);
+    for (let i = 0; i < 14; i++) {
+      const bx = i * 120 + Math.random() * 30;
+      const bh = 250 + Math.random() * 200;  // Taller for portrait
+      const bw = 40 + Math.random() * 60;
+      const groundBase = GAME_HEIGHT - 156;   // above road area
       g.fillStyle(0x151525);
-      g.fillRect(bx, GAME_HEIGHT - bh - 120, bw, bh);
+      g.fillRect(bx, groundBase - bh, bw, bh);
       // Damage chunks
       g.fillStyle(0x060610);
-      g.fillRect(bx + Math.random() * bw * 0.5, GAME_HEIGHT - bh - 120,
+      g.fillRect(bx + Math.random() * bw * 0.5, groundBase - bh,
         4 + Math.random() * 10, 10 + Math.random() * 20);
-      // Dim windows (some lit with green/amber)
-      for (let wy = GAME_HEIGHT - bh - 110; wy < GAME_HEIGHT - 130; wy += 14) {
-        for (let wx = bx + 4; wx < bx + bw - 4; wx += 10) {
-          if (Math.random() > 0.75) {
-            const windowColor = Math.random() > 0.7 ? 0x00ff41 : 0xffb000;
-            g.fillStyle(windowColor, 0.15 + Math.random() * 0.15);
-            g.fillRect(wx, wy, 4, 6);
+      // Dim windows
+      for (let wy = groundBase - bh + 10; wy < groundBase - 20; wy += 16) {
+        for (let wx = bx + 4; wx < bx + bw - 4; wx += 12) {
+          if (Math.random() > 0.7) {
+            const wColor = Math.random() > 0.7 ? 0x00ff41 : 0xffb000;
+            g.fillStyle(wColor, 0.12 + Math.random() * 0.12);
+            g.fillRect(wx, wy, 5, 7);
           }
         }
       }
     }
-    // Radio tower with blinking light
+    // Radio tower
     g.fillStyle(0x222233);
-    g.fillRect(1500, GAME_HEIGHT - 320, 3, 200);
+    g.fillRect(farW - 200, GAME_HEIGHT - 450, 3, 300);
     g.fillStyle(0xff0000, 0.8);
-    g.fillCircle(1501, GAME_HEIGHT - 320, 3);
-    this.tex(g, 'bg_far', GAME_WIDTH * 2, GAME_HEIGHT);
+    g.fillCircle(farW - 199, GAME_HEIGHT - 450, 3);
+    this.tex(g, 'bg_far', farW, GAME_HEIGHT);
 
-    // --- Background: Mid buildings (more detail) ---
+    // --- bg_mid: 810×720, mid-distance buildings ---
     g = this.gfx();
     g.fillStyle(0x060610, 0);
-    g.fillRect(0, 0, GAME_WIDTH * 2, GAME_HEIGHT);
-    for (let i = 0; i < 16; i++) {
-      const bx = i * 130 + Math.random() * 30;
-      const bh = 100 + Math.random() * 140;
-      const bw = 40 + Math.random() * 60;
-      // Building
+    g.fillRect(0, 0, farW, GAME_HEIGHT);
+    for (let i = 0; i < 12; i++) {
+      const bx = i * 150 + Math.random() * 30;
+      const bh = 180 + Math.random() * 180;
+      const bw = 50 + Math.random() * 70;
+      const groundBase = GAME_HEIGHT - 156;
       g.fillStyle(0x1a1a2a);
-      g.fillRect(bx, GAME_HEIGHT - bh - 120, bw, bh);
-      // Damage holes
+      g.fillRect(bx, groundBase - bh, bw, bh);
+      // Damage
       g.fillStyle(0x0a0a15);
       for (let d = 0; d < 4; d++) {
         g.fillRect(
           bx + Math.random() * (bw - 8),
-          GAME_HEIGHT - bh - 120 + Math.random() * bh,
+          groundBase - bh + Math.random() * bh,
           4 + Math.random() * 10,
           4 + Math.random() * 12
         );
       }
       // Rooftop antenna
-      if (Math.random() > 0.6) {
+      if (Math.random() > 0.5) {
         g.fillStyle(0x333344);
-        g.fillRect(bx + bw / 2, GAME_HEIGHT - bh - 130, 2, 10);
+        g.fillRect(bx + bw / 2, groundBase - bh - 14, 2, 14);
+      }
+      // Windows
+      for (let wy = groundBase - bh + 10; wy < groundBase - 20; wy += 18) {
+        for (let wx = bx + 6; wx < bx + bw - 6; wx += 14) {
+          if (Math.random() > 0.6) {
+            const wColor = Math.random() > 0.6 ? 0x00ff41 : 0xffb000;
+            g.fillStyle(wColor, 0.1 + Math.random() * 0.1);
+            g.fillRect(wx, wy, 6, 8);
+          }
+        }
       }
     }
-    // Smoke/fog
-    g.fillStyle(0x334455, 0.15);
-    for (let i = 0; i < 10; i++) {
-      g.fillCircle(
-        Math.random() * GAME_WIDTH * 2,
-        200 + Math.random() * 120,
-        20 + Math.random() * 40
-      );
-    }
-    // Neon signs (flickering green/pink text shapes)
+    // Neon signs
     g.fillStyle(0x00ff41, 0.2);
-    g.fillRect(350, GAME_HEIGHT - 200, 20, 6);
+    g.fillRect(350, GAME_HEIGHT - 220, 22, 6);
     g.fillStyle(0xff00aa, 0.15);
-    g.fillRect(900, GAME_HEIGHT - 180, 16, 5);
-    this.tex(g, 'bg_mid', GAME_WIDTH * 2, GAME_HEIGHT);
+    g.fillRect(680, GAME_HEIGHT - 200, 18, 5);
+    this.tex(g, 'bg_mid', farW, GAME_HEIGHT);
 
-    // --- Background: Near buildings (closest, most detail) ---
+    // --- bg_near: 810×720, closest buildings ---
     g = this.gfx();
     g.fillStyle(0x060610, 0);
-    g.fillRect(0, 0, GAME_WIDTH * 2, GAME_HEIGHT);
-    for (let i = 0; i < 12; i++) {
-      const bx = i * 170 + Math.random() * 40;
-      const bh = 60 + Math.random() * 100;
-      const bw = 50 + Math.random() * 80;
-      // Building
+    g.fillRect(0, 0, farW, GAME_HEIGHT);
+    for (let i = 0; i < 10; i++) {
+      const bx = i * 180 + Math.random() * 40;
+      const bh = 100 + Math.random() * 130;
+      const bw = 60 + Math.random() * 90;
+      const groundBase = GAME_HEIGHT - 156;
       g.fillStyle(0x222238);
-      g.fillRect(bx, GAME_HEIGHT - bh - 120, bw, bh);
-      // Lit windows (brighter, more frequent)
-      for (let wy = GAME_HEIGHT - bh - 110; wy < GAME_HEIGHT - 130; wy += 18) {
-        for (let wx = bx + 6; wx < bx + bw - 6; wx += 14) {
-          if (Math.random() > 0.35) {
-            const lit = Math.random() > 0.6;
+      g.fillRect(bx, groundBase - bh, bw, bh);
+      // Lit windows
+      for (let wy = groundBase - bh + 10; wy < groundBase - 20; wy += 20) {
+        for (let wx = bx + 6; wx < bx + bw - 6; wx += 16) {
+          if (Math.random() > 0.3) {
+            const lit = Math.random() > 0.5;
             if (lit) {
               const wColor = Math.random() > 0.5 ? 0x00ff41 : 0xffb000;
               g.fillStyle(wColor, 0.2 + Math.random() * 0.2);
             } else {
               g.fillStyle(0x334455, 0.3);
             }
-            g.fillRect(wx, wy, 8, 10);
+            g.fillRect(wx, wy, 9, 11);
           }
         }
       }
-      // Graffiti splashes
+      // Graffiti
       if (Math.random() > 0.5) {
         const gColor = Math.random() > 0.5 ? 0xff00aa : 0x00ff41;
         g.fillStyle(gColor, 0.12);
-        g.fillRect(bx + 5 + Math.random() * (bw - 20), GAME_HEIGHT - bh - 100,
-          8 + Math.random() * 12, 4 + Math.random() * 6);
+        g.fillRect(bx + 5 + Math.random() * (bw - 20), groundBase - bh + 20,
+          10 + Math.random() * 14, 5 + Math.random() * 6);
       }
     }
     // Hanging wires
     g.lineStyle(1, 0x333344, 0.4);
-    g.lineBetween(100, GAME_HEIGHT - 180, 250, GAME_HEIGHT - 170);
-    g.lineBetween(600, GAME_HEIGHT - 160, 780, GAME_HEIGHT - 175);
-    this.tex(g, 'bg_near', GAME_WIDTH * 2, GAME_HEIGHT);
+    g.lineBetween(80, GAME_HEIGHT - 220, 230, GAME_HEIGHT - 205);
+    g.lineBetween(480, GAME_HEIGHT - 200, 650, GAME_HEIGHT - 215);
+    this.tex(g, 'bg_near', farW, GAME_HEIGHT);
 
-    // --- Background: Ground / Road (retro neon-lined road) ---
+    // --- bg_ground: 810×120 road strip ---
     g = this.gfx();
     // Curb
     g.fillStyle(0x444444);
-    g.fillRect(0, 0, GAME_WIDTH * 2, 10);
+    g.fillRect(0, 0, farW, 10);
     // Curb neon line
     g.fillStyle(0x00ff41, 0.3);
-    g.fillRect(0, 0, GAME_WIDTH * 2, 2);
+    g.fillRect(0, 0, farW, 2);
     // Road surface
     g.fillStyle(COLORS.ROAD_GRAY);
-    g.fillRect(0, 10, GAME_WIDTH * 2, 110);
+    g.fillRect(0, 10, farW, 110);
     // Road cracks
     g.fillStyle(0x1a1a1a);
     for (let i = 0; i < 30; i++) {
-      const cx = Math.random() * GAME_WIDTH * 2;
-      g.fillRect(cx, 20 + Math.random() * 80, 1, 6 + Math.random() * 15);
+      const cx2 = Math.random() * farW;
+      g.fillRect(cx2, 20 + Math.random() * 80, 1, 6 + Math.random() * 15);
     }
     // Center line dashes (retro yellow)
     g.fillStyle(0xffaa00, 0.5);
@@ -611,22 +642,21 @@ export class BootScene extends Phaser.Scene {
     }
     // Road edge
     g.fillStyle(0x333333);
-    g.fillRect(0, 110, GAME_WIDTH * 2, 10);
+    g.fillRect(0, 110, farW, 10);
     // Bottom neon line
     g.fillStyle(0xff2222, 0.15);
-    g.fillRect(0, 118, GAME_WIDTH * 2, 2);
-    this.tex(g, 'bg_ground', GAME_WIDTH * 2, 120);
+    g.fillRect(0, 118, farW, 2);
+    this.tex(g, 'bg_ground', farW, 120);
   }
 
   // ─── UI ASSETS ───────────────────────────────────
   private generateUIAssets(): void {
-    // --- Retro button texture ---
+    // Retro button texture
     let g = this.gfx();
     g.fillStyle(0x111820);
     g.fillRect(0, 0, 200, 48);
     g.lineStyle(2, COLORS.CRT_GREEN);
     g.strokeRect(1, 1, 198, 46);
-    // Corner decorations
     g.fillStyle(COLORS.CRT_GREEN);
     g.fillRect(0, 0, 6, 2);
     g.fillRect(0, 0, 2, 6);
@@ -638,7 +668,7 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(198, 42, 2, 6);
     this.tex(g, 'retro_btn', 200, 48);
 
-    // --- Retro panel texture ---
+    // Retro panel texture
     g = this.gfx();
     g.fillStyle(0x0a0a12, 0.9);
     g.fillRect(0, 0, 400, 300);
@@ -648,7 +678,15 @@ export class BootScene extends Phaser.Scene {
     g.strokeRect(6, 6, 388, 288);
     this.tex(g, 'retro_panel', 400, 300);
 
-    // --- Mobile touch button ---
+    // HUD game-button texture (120×60, for SLIDE/JUMP/ATTACK)
+    g = this.gfx();
+    g.fillStyle(0x000000, 0.45);
+    g.fillRect(0, 0, 120, 60);
+    g.lineStyle(2, COLORS.CRT_GREEN, 0.6);
+    g.strokeRect(1, 1, 118, 58);
+    this.tex(g, 'hud_btn', 120, 60);
+
+    // Mobile touch button (kept for compatibility)
     g = this.gfx();
     g.fillStyle(0x000000, 0.3);
     g.fillCircle(24, 24, 24);

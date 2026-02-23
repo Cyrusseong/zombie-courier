@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, RETRO_UI } from '../config';
+import {
+  GAME_WIDTH, GAME_HEIGHT, COLORS, RETRO_UI,
+  HUD_TOP, HUD_STATS, HUD_BUTTONS,
+} from '../config';
 import { SoundManager } from '../systems/SoundManager';
 
 export class HUD {
@@ -10,26 +13,43 @@ export class HUD {
   private comboText!: Phaser.GameObjects.Text;
   private distanceText!: Phaser.GameObjects.Text;
   private fuelBar!: Phaser.GameObjects.Rectangle;
-  private fuelBg!: Phaser.GameObjects.Rectangle;
   private fuelText!: Phaser.GameObjects.Text;
 
   private container!: Phaser.GameObjects.Container;
-  private isMobile: boolean;
 
-  // Mobile touch zone guide elements
-  private guideContainer: Phaser.GameObjects.Container | null = null;
-  private guideVisible = false;
+  // Control button visuals
+  private slideBtn!: Phaser.GameObjects.Container;
+  private jumpBtn!: Phaser.GameObjects.Container;
+  private attackBtn!: Phaser.GameObjects.Container;
 
-  // Touch feedback flash
-  private touchFlash: Phaser.GameObjects.Rectangle | null = null;
-
-  // Control buttons
+  // Mute icon
   private muteIcon!: Phaser.GameObjects.Text;
+
+  // External input state (set by button callbacks)
+  private _jumpPressed = false;
+  private _slideHeld = false;
+  private _attackPressed = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.isMobile = !scene.sys.game.device.os.desktop;
     this.create();
+  }
+
+  // ─── Public input accessors (called by InputManager) ──────
+  get jumpPressed(): boolean {
+    const v = this._jumpPressed;
+    this._jumpPressed = false;
+    return v;
+  }
+
+  get slideHeld(): boolean {
+    return this._slideHeld;
+  }
+
+  get attackPressed(): boolean {
+    const v = this._attackPressed;
+    this._attackPressed = false;
+    return v;
   }
 
   private create(): void {
@@ -37,90 +57,86 @@ export class HUD {
     this.container.setDepth(100);
 
     this.createTopBar();
-    this.createBottomBar();
-
-    if (this.isMobile) {
-      this.createMobileControls();
-      this.showTouchGuide();
-      this.createTouchFeedback();
-    } else {
-      this.createDesktopControls();
-    }
+    this.createStatsBar();
+    this.createButtonBar();
   }
 
+  // ─── TOP BAR (y=0..HUD_TOP=44) ───────────────────
   private createTopBar(): void {
-    const topBg = this.scene.add.rectangle(GAME_WIDTH / 2, 18, GAME_WIDTH, 36, 0x000000, 0.65);
+    const midY = HUD_TOP / 2;  // 22
+
+    // Background
+    const topBg = this.scene.add.rectangle(GAME_WIDTH / 2, midY, GAME_WIDTH, HUD_TOP, 0x000000, 0.72);
     this.container.add(topBg);
 
-    const topLine = this.scene.add.rectangle(GAME_WIDTH / 2, 36, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.25);
-    this.container.add(topLine);
+    const bottomLine = this.scene.add.rectangle(GAME_WIDTH / 2, HUD_TOP, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.25);
+    this.container.add(bottomLine);
 
-    // HP display
-    this.hpText = this.scene.add.text(12, 6, '', {
+    // HP (left)
+    this.hpText = this.scene.add.text(8, midY, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '9px',
       color: '#ff2222',
     });
+    this.hpText.setOrigin(0, 0.5);
     this.container.add(this.hpText);
 
-    const hpLabel = this.scene.add.text(12, 24, 'HP', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '6px',
-      color: '#552222',
-    });
-    this.container.add(hpLabel);
-
     // Score (center)
-    this.scoreText = this.scene.add.text(GAME_WIDTH / 2, 5, '', {
+    this.scoreText = this.scene.add.text(GAME_WIDTH / 2, midY, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '14px',
+      fontSize: '12px',
       color: '#00ff41',
     });
-    this.scoreText.setOrigin(0.5, 0);
+    this.scoreText.setOrigin(0.5, 0.5);
     this.container.add(this.scoreText);
 
-    const scoreLabel = this.scene.add.text(GAME_WIDTH / 2, 24, 'SCORE', {
+    // Combo (right)
+    this.comboText = this.scene.add.text(GAME_WIDTH - 8, midY, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '6px',
-      color: '#005500',
-    });
-    scoreLabel.setOrigin(0.5, 0);
-    this.container.add(scoreLabel);
-
-    // Combo (right side)
-    this.comboText = this.scene.add.text(GAME_WIDTH - 12, 6, '', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '9px',
       color: '#ffb000',
     });
-    this.comboText.setOrigin(1, 0);
+    this.comboText.setOrigin(1, 0.5);
     this.container.add(this.comboText);
   }
 
-  private createBottomBar(): void {
-    const bottomBg = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 18, GAME_WIDTH, 36, 0x000000, 0.65);
-    this.container.add(bottomBg);
+  // ─── STATS BAR (y=GAME_HEIGHT-HUD_STATS-HUD_BUTTONS..GAME_HEIGHT-HUD_BUTTONS)
+  // = y=600..636
+  private createStatsBar(): void {
+    const statsY = GAME_HEIGHT - HUD_STATS - HUD_BUTTONS;  // 600
+    const midY = statsY + HUD_STATS / 2;                   // 618
 
-    const bottomLine = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 36, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.25);
+    const statsBg = this.scene.add.rectangle(GAME_WIDTH / 2, midY, GAME_WIDTH, HUD_STATS, 0x000000, 0.65);
+    this.container.add(statsBg);
+
+    const topLine = this.scene.add.rectangle(GAME_WIDTH / 2, statsY, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.2);
+    this.container.add(topLine);
+    const bottomLine = this.scene.add.rectangle(GAME_WIDTH / 2, statsY + HUD_STATS, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.2);
     this.container.add(bottomLine);
 
-    const fuelLabel = this.scene.add.text(12, GAME_HEIGHT - 28, 'FUEL', {
+    // FUEL label
+    const fuelLabel = this.scene.add.text(8, midY, 'FUEL', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '7px',
+      fontSize: '6px',
       color: '#005500',
     });
+    fuelLabel.setOrigin(0, 0.5);
     this.container.add(fuelLabel);
 
-    this.fuelBg = this.scene.add.rectangle(50, GAME_HEIGHT - 16, 120, 10, 0x111111);
-    this.fuelBg.setOrigin(0, 0.5);
-    this.fuelBg.setStrokeStyle(1, COLORS.CRT_GREEN, 0.3);
-    this.container.add(this.fuelBg);
+    // Fuel bar (after FUEL label)
+    const fuelBarX = 42;
+    const fuelBarW = 100;
+    const fuelBg = this.scene.add.rectangle(fuelBarX, midY, fuelBarW, 10, 0x111111);
+    fuelBg.setOrigin(0, 0.5);
+    fuelBg.setStrokeStyle(1, COLORS.CRT_GREEN, 0.3);
+    this.container.add(fuelBg);
 
-    this.fuelBar = this.scene.add.rectangle(51, GAME_HEIGHT - 16, 118, 8, COLORS.CRT_GREEN);
+    this.fuelBar = this.scene.add.rectangle(fuelBarX + 1, midY, fuelBarW - 2, 8, COLORS.CRT_GREEN);
     this.fuelBar.setOrigin(0, 0.5);
     this.container.add(this.fuelBar);
 
-    this.fuelText = this.scene.add.text(180, GAME_HEIGHT - 16, '100%', {
+    // Fuel %
+    this.fuelText = this.scene.add.text(fuelBarX + fuelBarW + 5, midY, '100%', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '7px',
       color: '#00ff41',
@@ -128,309 +144,174 @@ export class HUD {
     this.fuelText.setOrigin(0, 0.5);
     this.container.add(this.fuelText);
 
-    this.distanceText = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 18, '', {
+    // Distance (center)
+    this.distanceText = this.scene.add.text(GAME_WIDTH / 2, midY, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#cccccc',
     });
     this.distanceText.setOrigin(0.5, 0.5);
     this.container.add(this.distanceText);
 
-    const distLabel = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 8, 'DIST', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '6px',
-      color: '#444444',
-    });
-    distLabel.setOrigin(0.5, 0);
-    this.container.add(distLabel);
-  }
-
-  /**
-   * Mobile controls in the bottom HUD bar (right side)
-   * so they DON'T overlap the jump zone.
-   */
-  private createMobileControls(): void {
+    // Mute button (right)
     const sound = SoundManager.getInstance();
-    const btnY = GAME_HEIGHT - 16;
-
-    // "?" button to re-show touch zone guide
-    const helpBtn = this.scene.add.text(GAME_WIDTH - 14, btnY, '?', {
+    this.muteIcon = this.scene.add.text(GAME_WIDTH - 8, midY, sound.muted ? '[X]' : '[♪]', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '9px',
-      color: '#005500',
-    });
-    helpBtn.setOrigin(0.5, 0.5).setDepth(101);
-    helpBtn.setInteractive({ useHandCursor: true });
-    helpBtn.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      p.event.stopPropagation();
-      this.showTouchGuide();
-      sound.play('menuSelect');
-    });
-    this.container.add(helpBtn);
-
-    // Sound mute toggle
-    this.muteIcon = this.scene.add.text(GAME_WIDTH - 38, btnY, sound.muted ? 'X' : '#', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '9px',
-      color: sound.muted ? '#552222' : '#005500',
-    });
-    this.muteIcon.setOrigin(0.5, 0.5).setDepth(101);
-    this.muteIcon.setInteractive({ useHandCursor: true });
-    this.muteIcon.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      p.event.stopPropagation();
-      const muted = sound.toggleMute();
-      this.muteIcon.setText(muted ? 'X' : '#');
-      this.muteIcon.setColor(muted ? '#552222' : '#005500');
-      sound.play('menuSelect');
-    });
-    this.container.add(this.muteIcon);
-
-    // Fullscreen button
-    if (document.fullscreenEnabled) {
-      const fsBtn = this.scene.add.text(GAME_WIDTH - 60, btnY, '[]', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '7px',
-        color: '#005500',
-      });
-      fsBtn.setOrigin(0.5, 0.5).setDepth(101);
-      fsBtn.setInteractive({ useHandCursor: true });
-      fsBtn.on('pointerdown', (p: Phaser.Input.Pointer) => {
-        p.event.stopPropagation();
-        this.toggleFullscreen();
-        sound.play('menuSelect');
-      });
-      this.container.add(fsBtn);
-    }
-  }
-
-  private createDesktopControls(): void {
-    const sound = SoundManager.getInstance();
-    const btnY = GAME_HEIGHT - 16;
-
-    this.muteIcon = this.scene.add.text(GAME_WIDTH - 14, btnY, sound.muted ? 'X' : '#', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '8px',
+      fontSize: '7px',
       color: sound.muted ? '#552222' : '#005500',
     });
     this.muteIcon.setOrigin(1, 0.5).setDepth(101);
     this.muteIcon.setInteractive({ useHandCursor: true });
-    this.muteIcon.on('pointerdown', () => {
+    this.muteIcon.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      p.event.stopPropagation();
       const muted = sound.toggleMute();
-      this.muteIcon.setText(muted ? 'X' : '#');
+      this.muteIcon.setText(muted ? '[X]' : '[♪]');
       this.muteIcon.setColor(muted ? '#552222' : '#005500');
       sound.play('menuSelect');
     });
     this.container.add(this.muteIcon);
-
-    // Fullscreen toggle button (desktop)
-    if (document.fullscreenEnabled) {
-      const fsBtn = this.scene.add.text(GAME_WIDTH - 38, btnY, '[ ]', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '7px',
-        color: '#005500',
-      });
-      fsBtn.setOrigin(0.5, 0.5).setDepth(101);
-      fsBtn.setInteractive({ useHandCursor: true });
-      fsBtn.on('pointerover', () => fsBtn.setColor('#00ff41'));
-      fsBtn.on('pointerout', () => fsBtn.setColor('#005500'));
-      fsBtn.on('pointerdown', () => {
-        this.toggleFullscreen();
-        sound.play('menuSelect');
-      });
-      this.container.add(fsBtn);
-    }
   }
 
-  private toggleFullscreen(): void {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => { /* ignore */ });
-    } else {
-      document.documentElement.requestFullscreen().catch(() => { /* ignore */ });
-    }
+  // ─── BUTTON BAR (y=GAME_HEIGHT-HUD_BUTTONS..GAME_HEIGHT)
+  // = y=636..720
+  private createButtonBar(): void {
+    const btnAreaY = GAME_HEIGHT - HUD_BUTTONS;  // 636
+    const btnH = HUD_BUTTONS;                     // 84
+    const btnW = GAME_WIDTH / 3;                  // 135
+
+    // Background
+    const btnBg = this.scene.add.rectangle(GAME_WIDTH / 2, btnAreaY + btnH / 2, GAME_WIDTH, btnH, 0x000000, 0.55);
+    this.container.add(btnBg);
+
+    const topLine = this.scene.add.rectangle(GAME_WIDTH / 2, btnAreaY, GAME_WIDTH, 1, COLORS.CRT_GREEN, 0.3);
+    this.container.add(topLine);
+
+    // Dividers
+    const div1 = this.scene.add.rectangle(btnW, btnAreaY + btnH / 2, 1, btnH, COLORS.CRT_GREEN, 0.2);
+    const div2 = this.scene.add.rectangle(btnW * 2, btnAreaY + btnH / 2, 1, btnH, COLORS.CRT_GREEN, 0.2);
+    this.container.add([div1, div2]);
+
+    // SLIDE button (left third: x=0..135)
+    this.slideBtn = this.createControlButton(
+      btnW / 2, btnAreaY + btnH / 2,
+      '▼\nSLIDE',
+      COLORS.AMBER,
+      0
+    );
+    this.container.add(this.slideBtn);
+
+    // JUMP button (center: x=135..270)
+    this.jumpBtn = this.createControlButton(
+      btnW + btnW / 2, btnAreaY + btnH / 2,
+      '▲\nJUMP',
+      COLORS.CRT_GREEN,
+      1
+    );
+    this.container.add(this.jumpBtn);
+
+    // ATTACK button (right: x=270..405)
+    this.attackBtn = this.createControlButton(
+      btnW * 2 + btnW / 2, btnAreaY + btnH / 2,
+      '⚔\nATTACK',
+      COLORS.DANGER_RED,
+      2
+    );
+    this.container.add(this.attackBtn);
+
+    // Wire up touch events
+    this.setupButtonInputs(btnAreaY, btnW, btnH);
   }
 
-  /**
-   * Show touch zone guide overlay.
-   * Clear visual diagram of where to tap/hold.
-   * Auto-fades after 5s, re-showable via "?" button.
-   */
-  private showTouchGuide(): void {
-    if (this.guideContainer) {
-      this.guideContainer.destroy();
-      this.guideContainer = null;
-    }
+  private createControlButton(
+    cx: number, cy: number,
+    label: string,
+    color: number,
+    _index: number
+  ): Phaser.GameObjects.Container {
+    const c = this.scene.add.container(cx, cy);
 
-    this.guideVisible = true;
-    this.guideContainer = this.scene.add.container(0, 0);
-    this.guideContainer.setDepth(105);
+    const bg = this.scene.add.rectangle(0, 0, 128, 76, 0x000000, 0.4);
+    bg.setStrokeStyle(1, color, 0.5);
+    c.add(bg);
 
-    // Semi-transparent full overlay
-    const overlay = this.scene.add.rectangle(
-      GAME_WIDTH / 2, GAME_HEIGHT / 2,
-      GAME_WIDTH, GAME_HEIGHT,
-      0x000000, 0.5
-    );
-    this.guideContainer.add(overlay);
-
-    const midY = GAME_HEIGHT * 0.5;
-    const attackX = GAME_WIDTH * 0.6;
-    const topBarH = 38;
-    const bottomBarH = 38;
-
-    // ─── JUMP ZONE (top half) ──────────────────────
-    const jumpZone = this.scene.add.rectangle(
-      GAME_WIDTH / 2, topBarH + (midY - topBarH) / 2,
-      GAME_WIDTH - 8, midY - topBarH - 4,
-      COLORS.CRT_GREEN, 0.06
-    );
-    jumpZone.setStrokeStyle(1, COLORS.CRT_GREEN, 0.5);
-    this.guideContainer.add(jumpZone);
-
-    const jumpIcon = this.scene.add.text(GAME_WIDTH / 2, midY / 2 + 10, 'TAP: JUMP', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '12px',
-      color: '#00ff41',
-    });
-    jumpIcon.setOrigin(0.5).setAlpha(0.7);
-    this.guideContainer.add(jumpIcon);
-
-    const jumpArrow = this.scene.add.text(GAME_WIDTH / 2, midY / 2 - 14, '^', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '18px',
-      color: '#00ff41',
-    });
-    jumpArrow.setOrigin(0.5).setAlpha(0.5);
-    this.guideContainer.add(jumpArrow);
-
-    // ─── SLIDE ZONE (bottom-left) ──────────────────
-    const slideW = attackX - 4;
-    const slideH = GAME_HEIGHT - midY - bottomBarH - 4;
-    const slideZone = this.scene.add.rectangle(
-      slideW / 2 + 4, midY + slideH / 2 + 2,
-      slideW, slideH,
-      COLORS.AMBER, 0.06
-    );
-    slideZone.setStrokeStyle(1, COLORS.AMBER, 0.5);
-    this.guideContainer.add(slideZone);
-
-    const slideLabel = this.scene.add.text(
-      slideW / 2 + 4, midY + slideH / 2 + 2,
-      'HOLD: SLIDE', {
+    const colorHex = '#' + color.toString(16).padStart(6, '0');
+    const txt = this.scene.add.text(0, 0, label, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',
-      color: '#ffb000',
+      color: colorHex,
+      align: 'center',
+      lineSpacing: 6,
     });
-    slideLabel.setOrigin(0.5).setAlpha(0.7);
-    this.guideContainer.add(slideLabel);
+    txt.setOrigin(0.5, 0.5);
+    c.add(txt);
 
-    const slideHint = this.scene.add.text(
-      slideW / 2 + 4, midY + slideH / 2 - 18,
-      'v HOLD v', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '7px',
-      color: '#ffb000',
-    });
-    slideHint.setOrigin(0.5).setAlpha(0.4);
-    this.guideContainer.add(slideHint);
-
-    // ─── ATTACK ZONE (bottom-right) ────────────────
-    const atkW = GAME_WIDTH - attackX - 4;
-    const atkZone = this.scene.add.rectangle(
-      attackX + atkW / 2, midY + slideH / 2 + 2,
-      atkW, slideH,
-      COLORS.DANGER_RED, 0.06
-    );
-    atkZone.setStrokeStyle(1, COLORS.DANGER_RED, 0.5);
-    this.guideContainer.add(atkZone);
-
-    const atkLabel = this.scene.add.text(
-      attackX + atkW / 2, midY + slideH / 2 + 2,
-      'TAP: ATK', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '10px',
-      color: '#ff2222',
-    });
-    atkLabel.setOrigin(0.5).setAlpha(0.7);
-    this.guideContainer.add(atkLabel);
-
-    // Divider lines
-    const g = this.scene.add.graphics();
-    g.lineStyle(1, 0xffffff, 0.15);
-    g.lineBetween(attackX, midY + 2, attackX, GAME_HEIGHT - bottomBarH - 2);
-    g.lineStyle(1, 0xffffff, 0.1);
-    g.lineBetween(4, midY, GAME_WIDTH - 4, midY);
-    this.guideContainer.add(g);
-
-    // Bottom hint
-    const hint = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 46, 'TAP ANYWHERE TO DISMISS  |  ? TO RESHOW', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '5px',
-      color: '#556666',
-    });
-    hint.setOrigin(0.5);
-    this.guideContainer.add(hint);
-
-    // Dismiss on tap (with delay to prevent immediate dismiss)
-    this.scene.time.delayedCall(300, () => {
-      const dismissHandler = () => {
-        this.hideTouchGuide();
-        this.scene.input.off('pointerdown', dismissHandler);
-      };
-      this.scene.input.on('pointerdown', dismissHandler);
-    });
-
-    // Auto-fade after 5 seconds
-    this.scene.time.delayedCall(5000, () => {
-      this.hideTouchGuide();
-    });
+    return c;
   }
 
-  private hideTouchGuide(): void {
-    if (!this.guideVisible || !this.guideContainer) return;
-    this.guideVisible = false;
+  private setupButtonInputs(btnAreaY: number, btnW: number, btnH: number): void {
+    // Use scene-level pointer events, filter by Y (button area only)
+    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const py = pointer.y;
+      const px = pointer.x;
 
-    this.scene.tweens.add({
-      targets: this.guideContainer,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => {
-        this.guideContainer?.destroy();
-        this.guideContainer = null;
-      },
+      // Only handle button area
+      if (py < btnAreaY) return;
+
+      if (px < btnW) {
+        // SLIDE
+        this._slideHeld = true;
+        this.flashButton(this.slideBtn);
+      } else if (px < btnW * 2) {
+        // JUMP
+        this._jumpPressed = true;
+        this.flashButton(this.jumpBtn);
+      } else {
+        // ATTACK
+        this._attackPressed = true;
+        this.flashButton(this.attackBtn);
+      }
     });
-  }
 
-  private createTouchFeedback(): void {
-    this.touchFlash = this.scene.add.rectangle(0, 0, 60, 60, COLORS.CRT_GREEN, 0);
-    this.touchFlash.setDepth(98);
+    // Track which pointer ID started the slide hold
+    let slidePointerId = -1;
 
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.guideVisible || !this.touchFlash) return;
+      const py = pointer.y;
+      const px = pointer.x;
 
-      this.touchFlash.setPosition(pointer.x, pointer.y);
-      this.touchFlash.setScale(1);
-
-      const midY = GAME_HEIGHT * 0.5;
-      const attackX = GAME_WIDTH * 0.6;
-      if (pointer.y < midY) {
-        this.touchFlash.setFillStyle(COLORS.CRT_GREEN, 0.15);
-      } else if (pointer.x > attackX) {
-        this.touchFlash.setFillStyle(COLORS.DANGER_RED, 0.15);
-      } else {
-        this.touchFlash.setFillStyle(COLORS.AMBER, 0.15);
+      // Button area: update slide pointer tracking
+      if (py >= btnAreaY && px < btnW) {
+        slidePointerId = pointer.id;
       }
 
-      this.scene.tweens.add({
-        targets: this.touchFlash,
-        alpha: { from: 0.15, to: 0 },
-        scaleX: { from: 1, to: 2 },
-        scaleY: { from: 1, to: 2 },
-        duration: 200,
-      });
+      // Game area tap (above HUD_TOP) → jump
+      if (py < btnAreaY && py > 44) {
+        this._jumpPressed = true;
+      }
+    });
+
+    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      // Release slide when the slide pointer is lifted
+      if (pointer.id === slidePointerId) {
+        this._slideHeld = false;
+        slidePointerId = -1;
+      }
+    });
+  }
+
+  private flashButton(btn: Phaser.GameObjects.Container): void {
+    this.scene.tweens.add({
+      targets: btn,
+      scaleX: 0.92,
+      scaleY: 0.92,
+      duration: 60,
+      yoyo: true,
+      ease: 'Quad.easeOut',
     });
   }
 
   update(hp: number, maxHp: number, score: number, combo: number, distance: number, fuel: number): void {
+    // HP
     const filledBlocks = '█'.repeat(hp);
     const emptyBlocks = '░'.repeat(maxHp - hp);
     this.hpText.setText(`[${filledBlocks}${emptyBlocks}]`);
@@ -443,11 +324,13 @@ export class HUD {
       this.hpText.setColor('#00ff41');
     }
 
+    // Score
     const scoreStr = score.toString().padStart(RETRO_UI.SCORE_DIGITS, '0');
     this.scoreText.setText(scoreStr);
 
+    // Combo
     if (combo >= 3) {
-      this.comboText.setText(`x${combo} COMBO`);
+      this.comboText.setText(`x${combo}COMBO`);
       this.comboText.setVisible(true);
       if (combo >= 20) {
         this.comboText.setColor('#ff2222');
@@ -462,9 +345,11 @@ export class HUD {
       this.comboText.setVisible(false);
     }
 
+    // Distance
     this.distanceText.setText(`${distance}m`);
 
-    const fuelWidth = Math.max(0, (fuel / 100) * 118);
+    // Fuel bar
+    const fuelWidth = Math.max(0, (fuel / 100) * 98);
     this.fuelBar.width = fuelWidth;
     this.fuelText.setText(`${Math.floor(fuel)}%`);
 
@@ -483,20 +368,14 @@ export class HUD {
     }
   }
 
-  /**
-   * Coin-to-score particle trail: a coin sprite flies along a bezier arc
-   * from pickup to the score display, leaving a sparkle trail,
-   * then impacts with a burst and score pulse.
-   */
+  // Coin-to-score particle trail
   showCoinTrail(startX: number, startY: number): void {
     const endX = GAME_WIDTH / 2;
-    const endY = 14;
+    const endY = 22;
 
-    // Bezier control point — arcs upward with slight randomness
     const ctrlX = (startX + endX) / 2 + (Math.random() - 0.5) * 60;
     const ctrlY = Math.min(startY, endY) - 50 - Math.random() * 40;
 
-    // Flying coin sprite
     const flyingCoin = this.scene.add.image(startX, startY, 'coin');
     flyingCoin.setScale(1.5);
     flyingCoin.setDepth(110);
@@ -509,7 +388,6 @@ export class HUD {
       onUpdate: (tween) => {
         const t = tween.getValue() ?? 0;
         const inv = 1 - t;
-        // Quadratic bezier
         const x = inv * inv * startX + 2 * inv * t * ctrlX + t * t * endX;
         const y = inv * inv * startY + 2 * inv * t * ctrlY + t * t * endY;
 
@@ -517,7 +395,6 @@ export class HUD {
         flyingCoin.setScale(1.5 * (1 - t * 0.5));
         flyingCoin.setAngle(flyingCoin.angle + 18);
 
-        // Sparkle trail (retro pixel squares)
         if (Math.random() < 0.6) {
           const sparkle = this.scene.add.rectangle(
             x + (Math.random() - 0.5) * 8,
@@ -543,7 +420,6 @@ export class HUD {
   }
 
   private scoreImpact(x: number, y: number): void {
-    // Burst of gold sparks outward
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
       const spark = this.scene.add.rectangle(x, y, 3, 3, 0xffd700, 1);
@@ -561,7 +437,6 @@ export class HUD {
       });
     }
 
-    // Gold flash behind score
     const flash = this.scene.add.rectangle(x, y, 80, 22, 0xffd700, 0.35);
     flash.setDepth(99);
     this.scene.tweens.add({
@@ -573,7 +448,6 @@ export class HUD {
       onComplete: () => flash.destroy(),
     });
 
-    // Score text pulse
     this.scene.tweens.add({
       targets: this.scoreText,
       scaleX: 1.3,
@@ -583,7 +457,6 @@ export class HUD {
       ease: 'Quad.easeOut',
     });
 
-    // Brief gold color flash on score
     this.scoreText.setColor('#ffd700');
     this.scene.time.delayedCall(150, () => {
       this.scoreText.setColor('#00ff41');
@@ -615,8 +488,9 @@ export class HUD {
     if (combo < 5) return;
 
     const alertColor = combo >= 20 ? '#ff2222' : combo >= 10 ? '#ff4444' : '#ffb000';
+    const alertY = GAME_HEIGHT * 0.4;
 
-    const alert = this.scene.add.text(GAME_WIDTH / 2, 180, `${combo} COMBO!`, {
+    const alert = this.scene.add.text(GAME_WIDTH / 2, alertY, `${combo} COMBO!`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '20px',
       color: alertColor,
@@ -626,7 +500,7 @@ export class HUD {
     alert.setOrigin(0.5);
     alert.setDepth(99);
 
-    const glow = this.scene.add.text(GAME_WIDTH / 2, 180, `${combo} COMBO!`, {
+    const glow = this.scene.add.text(GAME_WIDTH / 2, alertY, `${combo} COMBO!`, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '20px',
       color: alertColor,
@@ -652,7 +526,5 @@ export class HUD {
 
   destroy(): void {
     this.container.destroy();
-    this.guideContainer?.destroy();
-    this.touchFlash?.destroy();
   }
 }

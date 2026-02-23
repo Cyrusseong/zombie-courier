@@ -68,14 +68,14 @@ export class GameOverScene extends Phaser.Scene {
 
     // Double border frame
     g.lineStyle(2, COLORS.CRT_GREEN, 0.5);
-    g.strokeRect(60, 20, GAME_WIDTH - 120, GAME_HEIGHT - 40);
+    g.strokeRect(20, 20, GAME_WIDTH - 40, GAME_HEIGHT - 40);
     g.lineStyle(1, COLORS.CRT_GREEN, 0.2);
-    g.strokeRect(64, 24, GAME_WIDTH - 128, GAME_HEIGHT - 48);
+    g.strokeRect(24, 24, GAME_WIDTH - 48, GAME_HEIGHT - 48);
 
     // Corner decorations
-    const corners = [
-      [60, 20], [GAME_WIDTH - 60, 20],
-      [60, GAME_HEIGHT - 20], [GAME_WIDTH - 60, GAME_HEIGHT - 20],
+    const corners: [number, number][] = [
+      [20, 20], [GAME_WIDTH - 20, 20],
+      [20, GAME_HEIGHT - 20], [GAME_WIDTH - 20, GAME_HEIGHT - 20],
     ];
     corners.forEach(([cx, cy]) => {
       g.fillStyle(COLORS.CRT_GREEN, 0.7);
@@ -84,16 +84,16 @@ export class GameOverScene extends Phaser.Scene {
 
     // Separator lines
     g.lineStyle(1, COLORS.CRT_GREEN, 0.15);
-    g.lineBetween(80, 95, GAME_WIDTH - 80, 95);
-    g.lineBetween(80, 370, GAME_WIDTH - 80, 370);
+    g.lineBetween(40, 130, GAME_WIDTH - 40, 130);
+    g.lineBetween(40, 440, GAME_WIDTH - 40, 440);
   }
 
   private createTitle(d: GameOverData): void {
+    // y=60
     if (d.isNewHighScore) {
-      // New Record! - Amber flashing
-      const newRecord = this.add.text(GAME_WIDTH / 2, 42, '*** NEW RECORD ***', {
+      const newRecord = this.add.text(GAME_WIDTH / 2, 50, '*** NEW RECORD ***', {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: '#ffb000',
       });
       newRecord.setOrigin(0.5).setDepth(2);
@@ -108,22 +108,26 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     const titleColor = d.isNewHighScore ? '#ffd700' : '#ff2222';
-    const titleText = d.isNewHighScore ? 'MISSION COMPLETE' : 'GAME OVER';
+    const titleText = d.isNewHighScore ? 'MISSION\nCOMPLETE' : 'GAME\nOVER';
+    const titleY = d.isNewHighScore ? 90 : 80;
 
-    const title = this.add.text(GAME_WIDTH / 2, d.isNewHighScore ? 66 : 56, titleText, {
+    const title = this.add.text(GAME_WIDTH / 2, titleY, titleText, {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '24px',
+      fontSize: '28px',
       color: titleColor,
       stroke: '#000000',
       strokeThickness: 3,
+      align: 'center',
+      lineSpacing: 6,
     });
     title.setOrigin(0.5).setDepth(2);
 
-    // Title glow
-    const titleGlow = this.add.text(GAME_WIDTH / 2, d.isNewHighScore ? 66 : 56, titleText, {
+    const titleGlow = this.add.text(GAME_WIDTH / 2, titleY, titleText, {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '24px',
+      fontSize: '28px',
       color: titleColor,
+      align: 'center',
+      lineSpacing: 6,
     });
     titleGlow.setOrigin(0.5).setDepth(1);
     titleGlow.setAlpha(0.2);
@@ -144,51 +148,47 @@ export class GameOverScene extends Phaser.Scene {
 
   private createStatsTable(d: GameOverData): void {
     const cx = GAME_WIDTH / 2;
-    let y = 120;
-    const lineHeight = 42;
+    let y = 160;
+    const lineHeight = 40;
 
     // Stats header
-    this.add.text(cx, y - 10, '[ RESULTS ]', {
+    this.add.text(cx, y - 14, '── RESULTS ──', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '8px',
       color: '#00aa2a',
     }).setOrigin(0.5).setDepth(2);
 
-    y += 16;
-
     const stats = [
-      { label: 'SCORE', value: d.score.toLocaleString().padStart(10, ' '), color: '#00ff41' },
-      { label: 'DISTANCE', value: `${d.distance.toLocaleString()}m`.padStart(10, ' '), color: '#cccccc' },
-      { label: 'KILLS', value: `${d.zombies}`.padStart(10, ' '), color: '#44bb44' },
-      { label: 'COINS', value: `${d.coins}`.padStart(10, ' '), color: '#ffd700' },
-      { label: 'MAX COMBO', value: `x${d.maxCombo}`.padStart(10, ' '), color: '#ffb000' },
+      { label: 'SCORE', value: d.score.toString().padStart(8, '0'), color: '#00ff41' },
+      { label: 'DISTANCE', value: `${d.distance}m`, color: '#cccccc' },
+      { label: 'ZOMBIES', value: `${d.zombies}`, color: '#44bb44' },
+      { label: 'COINS', value: `${d.coins}`, color: '#ffd700' },
+      { label: 'MAX COMBO', value: `x${d.maxCombo}`, color: '#ffb000' },
     ];
 
     stats.forEach((stat, i) => {
       const sy = y + i * lineHeight;
 
-      // Label
-      const label = this.add.text(cx - 140, sy, `> ${stat.label}`, {
+      const label = this.add.text(cx - 130, sy, `> ${stat.label}`, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: '#556666',
       });
       label.setDepth(2);
 
-      // Value (animated slide-in with sound)
-      const valueText = this.add.text(cx + 140, sy, stat.value, {
+      const valueText = this.add.text(cx + 130, sy, stat.value, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '12px',
+        fontSize: '11px',
         color: stat.color,
       });
       valueText.setOrigin(1, 0).setDepth(2);
       valueText.setAlpha(0);
-      valueText.x = cx + 160;
+      valueText.x = cx + 150;
 
       this.tweens.add({
         targets: valueText,
         alpha: 1,
-        x: cx + 140,
+        x: cx + 130,
         delay: 200 + i * 120,
         duration: 300,
         ease: 'Quad.easeOut',
@@ -198,28 +198,36 @@ export class GameOverScene extends Phaser.Scene {
       });
     });
 
-    // High score display
+    // High score
     const highScore = localStorage.getItem('zc_highscore') || '0';
-    this.add.text(cx, y + stats.length * lineHeight + 14, `BEST: ${parseInt(highScore).toLocaleString().padStart(8, '0')}`, {
+    const hsY = y + stats.length * lineHeight + 16;
+    this.add.text(cx, hsY, '── HIGH SCORE ──', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '8px',
+      fontSize: '7px',
       color: '#334444',
+    }).setOrigin(0.5).setDepth(2);
+
+    this.add.text(cx, hsY + 22, parseInt(highScore).toString().padStart(8, '0'), {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '13px',
+      color: '#ffb000',
     }).setOrigin(0.5).setDepth(2);
   }
 
   private createButtons(): void {
-    const btnY = 400;
-    const btnSpacing = 170;
+    // y≈460: three buttons side by side
+    const btnY = 468;
+    const btnSpacing = 118;
 
-    // ─── RETRY BUTTON ───────────────────────────────
-    const retryBtn = this.add.rectangle(GAME_WIDTH / 2 - btnSpacing / 2, btnY, 150, 44, 0x001a00, 0.9);
+    // RETRY button
+    const retryBtn = this.add.rectangle(GAME_WIDTH / 2 - btnSpacing, btnY, 100, 44, 0x001a00, 0.9);
     retryBtn.setStrokeStyle(2, COLORS.CRT_GREEN);
     retryBtn.setInteractive({ useHandCursor: true });
     retryBtn.setDepth(2);
 
-    const retryText = this.add.text(GAME_WIDTH / 2 - btnSpacing / 2, btnY, '> RETRY', {
+    const retryText = this.add.text(GAME_WIDTH / 2 - btnSpacing, btnY, 'RETRY', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '9px',
       color: '#00ff41',
     }).setOrigin(0.5).setDepth(3);
 
@@ -234,15 +242,15 @@ export class GameOverScene extends Phaser.Scene {
     });
     retryBtn.on('pointerdown', () => this.retry());
 
-    // ─── SHARE BUTTON ───────────────────────────────
-    const shareBtn = this.add.rectangle(GAME_WIDTH / 2 + btnSpacing / 2, btnY, 150, 44, 0x0a0a20, 0.9);
+    // SHARE button
+    const shareBtn = this.add.rectangle(GAME_WIDTH / 2, btnY, 100, 44, 0x0a0a20, 0.9);
     shareBtn.setStrokeStyle(2, COLORS.ITEM_BLUE);
     shareBtn.setInteractive({ useHandCursor: true });
     shareBtn.setDepth(2);
 
-    const shareText = this.add.text(GAME_WIDTH / 2 + btnSpacing / 2, btnY, '> SHARE', {
+    const shareText = this.add.text(GAME_WIDTH / 2, btnY, 'SHARE', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '9px',
       color: '#00ccff',
     }).setOrigin(0.5).setDepth(3);
 
@@ -257,13 +265,13 @@ export class GameOverScene extends Phaser.Scene {
     });
     shareBtn.on('pointerdown', () => this.share());
 
-    // ─── MENU BUTTON ────────────────────────────────
-    const menuBtn = this.add.rectangle(GAME_WIDTH / 2, btnY + 56, 120, 36, 0x111111, 0.8);
+    // MENU button
+    const menuBtn = this.add.rectangle(GAME_WIDTH / 2 + btnSpacing, btnY, 100, 44, 0x111111, 0.8);
     menuBtn.setStrokeStyle(1, COLORS.UI_DIM);
     menuBtn.setInteractive({ useHandCursor: true });
     menuBtn.setDepth(2);
 
-    const menuText = this.add.text(GAME_WIDTH / 2, btnY + 56, 'MENU', {
+    const menuText = this.add.text(GAME_WIDTH / 2 + btnSpacing, btnY, 'MENU', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '9px',
       color: '#556666',
@@ -287,7 +295,6 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createFooter(): void {
-    // Blinking hint
     const isMobile = !this.sys.game.device.os.desktop;
     const hintText = isMobile ? 'TAP RETRY TO CONTINUE' : 'PRESS SPACE TO CONTINUE';
 
@@ -304,14 +311,14 @@ export class GameOverScene extends Phaser.Scene {
       loop: true,
     });
 
-    // Fullscreen toggle button (bottom-right)
+    // Fullscreen toggle
     if (document.fullscreenEnabled) {
-      const fsBtn = this.add.text(GAME_WIDTH - 76, GAME_HEIGHT - 28, 'FULLSCREEN', {
+      const fsBtn = this.add.text(GAME_WIDTH - 30, GAME_HEIGHT - 28, 'FS', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '6px',
         color: '#334444',
       });
-      fsBtn.setOrigin(0.5, 0.5).setDepth(2);
+      fsBtn.setOrigin(1, 0.5).setDepth(2);
       fsBtn.setInteractive({ useHandCursor: true });
       fsBtn.on('pointerover', () => fsBtn.setColor('#00ff41'));
       fsBtn.on('pointerout', () => fsBtn.setColor('#334444'));
@@ -369,11 +376,11 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private showCopiedMessage(): void {
-    const msgBg = this.add.rectangle(GAME_WIDTH / 2, 500, 200, 24, 0x001a00, 0.9);
+    const msgBg = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 80, 180, 24, 0x001a00, 0.9);
     msgBg.setStrokeStyle(1, COLORS.CRT_GREEN, 0.5);
     msgBg.setDepth(60);
 
-    const msg = this.add.text(GAME_WIDTH / 2, 500, 'COPIED!', {
+    const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 80, 'COPIED!', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '9px',
       color: '#00ff41',

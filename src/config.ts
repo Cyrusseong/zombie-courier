@@ -1,7 +1,14 @@
 import Phaser from 'phaser';
 
-export const GAME_WIDTH = 960;
-export const GAME_HEIGHT = 540;
+export const GAME_WIDTH = 405;
+export const GAME_HEIGHT = 720;
+
+// HUD 영역 상수
+export const HUD_TOP = 44;
+export const HUD_STATS = 36;
+export const HUD_BUTTONS = 84;
+export const PLAY_AREA_TOP = HUD_TOP;
+export const PLAY_AREA_BOTTOM = GAME_HEIGHT - HUD_STATS - HUD_BUTTONS; // 600
 
 // ═══════════════════════════════════════════════════
 //  RETRO COLOR PALETTE - CRT Terminal / Arcade Style
@@ -72,12 +79,12 @@ export const RETRO_UI = {
 };
 
 export const PLAYER = {
-  START_X: 150,
-  GROUND_Y: 420,
-  JUMP_VELOCITY: -550,
-  GRAVITY: 1200,
+  START_X: 90,
+  GROUND_Y: 564,
+  JUMP_VELOCITY: -600,
+  GRAVITY: 1400,
   MAX_HP: 3,
-  BASE_SPEED: 300,
+  BASE_SPEED: 220,
   SLIDE_DURATION: 500,
   ATTACK_RANGE: 80,
   ATTACK_DAMAGE: 1,
@@ -96,7 +103,7 @@ export const SPAWN = {
 
 export const DIFFICULTY = {
   SPEED_INCREMENT: 5,
-  SPEED_MAX: 600,
+  SPEED_MAX: 450,
   INTERVAL_DECAY: 0.98,
   ZONE_DISTANCE: [0, 500, 1500, 3000, 5000],
 };

@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0a0a12" />
-  <meta name="screen-orientation" content="landscape" />
+  <meta name="screen-orientation" content="portrait" />
   <title>Zombie Courier - 좀비 택배</title>
   <meta name="description" content="좀비 아포칼립스 세계에서 오토바이 택배 기사가 되어 생존자들에게 물품을 배송하라!" />
   <meta property="og:title" content="Zombie Courier - 좀비 택배" />
@@ -172,82 +172,6 @@
       }
     }
 
-    /* ─── ORIENTATION OVERLAY ─────────────────────── */
-    #rotate-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #0a0a12;
-      z-index: 9999;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    #rotate-overlay .rotate-icon {
-      width: 60px;
-      height: 60px;
-      border: 3px solid #00ff41;
-      border-radius: 8px;
-      position: relative;
-      animation: rotate-phone 2s ease-in-out infinite;
-    }
-
-    #rotate-overlay .rotate-icon::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 4px;
-      height: 4px;
-      background: #00ff41;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    @keyframes rotate-phone {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-90deg); }
-      50% { transform: rotate(-90deg); }
-      75% { transform: rotate(0deg); }
-    }
-
-    #rotate-overlay .rotate-text {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
-      color: #00ff41;
-      text-align: center;
-      line-height: 1.8;
-      text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
-    }
-
-    #rotate-overlay .rotate-dismiss {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #556666;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-
-    /* Portrait mobile: no longer force landscape.
-       The game canvas scales via Phaser.Scale.FIT and is playable in portrait.
-       Show a small suggestion banner instead of a blocking overlay. */
-    @media (orientation: portrait) and (max-width: 768px) and (hover: none) and (pointer: coarse) {
-      #rotate-overlay {
-        display: flex;
-      }
-    }
-
-    /* In portrait, make the suggestion auto-dismiss after animation */
-    @media (orientation: portrait) {
-      #rotate-overlay {
-        /* Semi-transparent instead of opaque, so game is visible behind */
-        background: rgba(10, 10, 18, 0.85);
-      }
-    }
-
     /* ─── LOADING SCREEN ──────────────────────────── */
     #loading-screen {
       position: absolute;
@@ -319,11 +243,6 @@
       width: 100vw;
       height: 100vh;
     }
-    /* Hide orientation overlay when in landscape fullscreen */
-    body:-webkit-full-screen #rotate-overlay,
-    body:fullscreen #rotate-overlay {
-      display: none !important;
-    }
   </style>
 </head>
 <body>
@@ -336,34 +255,7 @@
   <div id="crt-overlay"></div>
   <div id="crt-vignette"></div>
 
-  <!-- Orientation overlay for portrait mobile -->
-  <div id="rotate-overlay">
-    <div class="rotate-icon"></div>
-    <div class="rotate-text">ROTATE YOUR DEVICE<br>기기를 회전하세요</div>
-    <div class="rotate-dismiss" id="rotate-dismiss">TAP TO DISMISS</div>
-  </div>
-
   <script>
-    // Allow dismissing the rotate overlay by tapping anywhere on it
-    var rotateOverlay = document.getElementById('rotate-overlay');
-    if (rotateOverlay) {
-      rotateOverlay.addEventListener('click', function() {
-        rotateOverlay.style.display = 'none';
-      });
-      // Auto-dismiss the portrait suggestion after 3 seconds
-      // (it's just a hint, not a blocker — game is playable in portrait)
-      setTimeout(function() {
-        if (rotateOverlay.style.display !== 'none') {
-          rotateOverlay.style.opacity = '0';
-          rotateOverlay.style.transition = 'opacity 0.5s ease';
-          setTimeout(function() {
-            rotateOverlay.style.display = 'none';
-            rotateOverlay.style.opacity = '1';
-          }, 500);
-        }
-      }, 3000);
-    }
-
     // Prevent default touch behaviors that interfere with the game
     document.addEventListener('touchmove', function(e) {
       if (e.target === document.body || e.target.tagName === 'CANVAS') {

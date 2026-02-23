@@ -105,6 +105,7 @@ export class GameScene extends Phaser.Scene {
     this.spawnManager = new SpawnManager(this);
     this.inputManager = new InputManager(this);
     this.hud = new HUD(this);
+    this.inputManager.linkHUD(this.hud);
   }
 
   private createCollisions(): void {
@@ -391,8 +392,9 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(500, 0.02);
     this.cameras.main.flash(200, 255, 50, 50);
 
-    // Retro "DEAD" text instead of emoji
-    const deadText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'WASTED', {
+    // Retro "DEAD" text — positioned above button area
+    const wastedY = GAME_HEIGHT * 0.4;
+    const deadText = this.add.text(GAME_WIDTH / 2, wastedY, 'WASTED', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '32px',
       color: '#ff2222',
@@ -404,7 +406,7 @@ export class GameScene extends Phaser.Scene {
     deadText.setAlpha(0);
 
     // Glow behind dead text
-    const deadGlow = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'WASTED', {
+    const deadGlow = this.add.text(GAME_WIDTH / 2, wastedY, 'WASTED', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '32px',
       color: '#ff2222',

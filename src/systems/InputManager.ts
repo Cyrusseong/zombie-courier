@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { HUD } from '../ui/HUD';
 
 export interface GameInputState {
   jump: boolean;
@@ -9,6 +9,8 @@ export interface GameInputState {
 
 export class InputManager {
   private scene: Phaser.Scene;
+  private hud: HUD | null = null;
+
   private keys: {
     up: Phaser.Input.Keyboard.Key;
     w: Phaser.Input.Keyboard.Key;
@@ -18,16 +20,14 @@ export class InputManager {
     j: Phaser.Input.Keyboard.Key;
   } | null = null;
 
-  private touchJump = false;
-  private touchAttack = false;
-
-  // Track which pointer ID is doing slide (for multi-touch correctness)
-  private slidePointerId: number = -1;
-
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.setupKeyboard();
-    this.setupTouch();
+  }
+
+  // Called from GameScene after HUD is created
+  linkHUD(hud: HUD): void {
+    this.hud = hud;
   }
 
   private setupKeyboard(): void {
@@ -44,33 +44,6 @@ export class InputManager {
     };
   }
 
-  private setupTouch(): void {
-    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // Use game coordinates (GAME_WIDTH/GAME_HEIGHT) consistently.
-      // Phaser FIT mode auto-transforms pointer.x/y to game coordinates.
-      const midY = GAME_HEIGHT * 0.5;
-      const attackX = GAME_WIDTH * 0.6;
-
-      if (pointer.y < midY) {
-        // Top half → jump
-        this.touchJump = true;
-      } else if (pointer.x > attackX) {
-        // Bottom-right → attack
-        this.touchAttack = true;
-      } else {
-        // Bottom-left → slide (hold)
-        this.slidePointerId = pointer.id;
-      }
-    });
-
-    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      // Only release slide if the SAME pointer that started it is released
-      if (pointer.id === this.slidePointerId) {
-        this.slidePointerId = -1;
-      }
-    });
-  }
-
   getState(): GameInputState {
     const state: GameInputState = {
       jump: false,
@@ -78,7 +51,7 @@ export class InputManager {
       attack: false,
     };
 
-    // Keyboard
+    // Keyboard input
     if (this.keys) {
       state.jump = Phaser.Input.Keyboard.JustDown(this.keys.up)
         || Phaser.Input.Keyboard.JustDown(this.keys.w)
@@ -89,25 +62,17 @@ export class InputManager {
       state.attack = Phaser.Input.Keyboard.JustDown(this.keys.j);
     }
 
-    // Touch (merge)
-    if (this.touchJump) {
-      state.jump = true;
-      this.touchJump = false;
-    }
-    if (this.slidePointerId >= 0) {
-      state.slide = true;
-    }
-    if (this.touchAttack) {
-      state.attack = true;
-      this.touchAttack = false;
+    // HUD button state (mobile)
+    if (this.hud) {
+      if (this.hud.jumpPressed) state.jump = true;
+      if (this.hud.slideHeld) state.slide = true;
+      if (this.hud.attackPressed) state.attack = true;
     }
 
     return state;
   }
 
   destroy(): void {
-    this.scene.input.off('pointerdown');
-    this.scene.input.off('pointerup');
-    this.slidePointerId = -1;
+    // Keyboard keys cleanup handled by Phaser scene shutdown
   }
 }
