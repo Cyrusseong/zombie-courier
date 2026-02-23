@@ -37,7 +37,7 @@ export class GameScene extends Phaser.Scene {
   private bgMid!: Phaser.GameObjects.TileSprite;
   private bgNear!: Phaser.GameObjects.TileSprite;
   private bgGround!: Phaser.GameObjects.TileSprite;
-  private ground!: Phaser.Physics.Arcade.StaticBody;
+  private groundZone!: Phaser.GameObjects.Zone;
 
   // CRT Effects
   private vignette!: Phaser.GameObjects.Rectangle;
@@ -102,10 +102,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createGround(): void {
-    // Invisible ground platform
-    const groundZone = this.add.zone(GAME_WIDTH / 2, PLAYER.GROUND_Y + 10, GAME_WIDTH * 2, 20);
-    this.physics.add.existing(groundZone, true);
-    this.ground = groundZone.body as Phaser.Physics.Arcade.StaticBody;
+    // Invisible ground platform — store the Zone (game object), not the body.
+    // Zone center at GROUND_Y+28 so zone.top=582 (where player body.bottom lands
+    // when player.y = GROUND_Y, given scale=1.5, setSize(48,48), setOffset(8,4)).
+    this.groundZone = this.add.zone(GAME_WIDTH / 2, PLAYER.GROUND_Y + 28, GAME_WIDTH * 2, 20);
+    this.physics.add.existing(this.groundZone, true);
   }
 
   private createPlayer(): void {
@@ -122,7 +123,7 @@ export class GameScene extends Phaser.Scene {
 
   private createCollisions(): void {
     // Player vs Ground
-    this.physics.add.collider(this.player, this.ground as unknown as Phaser.Physics.Arcade.StaticBody);
+    this.physics.add.collider(this.player, this.groundZone);
 
     // Player vs Obstacles
     this.physics.add.overlap(
@@ -152,7 +153,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     // Zombies on ground
-    this.physics.add.collider(this.spawnManager.zombies, this.ground as unknown as Phaser.Physics.Arcade.StaticBody);
+    this.physics.add.collider(this.spawnManager.zombies, this.groundZone);
   }
 
   private createCRTEffects(): void {
