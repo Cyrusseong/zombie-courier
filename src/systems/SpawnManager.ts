@@ -7,6 +7,8 @@ import { Item, ItemType } from '../objects/Item';
 export class SpawnManager {
   private scene: Phaser.Scene;
   private groundY: number;
+  private currentMultiplier: number = 1;
+  private currentItemMultiplier: number = 1;
 
   private zombieTimer: Phaser.Time.TimerEvent | null = null;
   private obstacleTimer: Phaser.Time.TimerEvent | null = null;
@@ -27,9 +29,11 @@ export class SpawnManager {
     this.items = scene.add.group({ runChildUpdate: false });
   }
 
-  start(difficultyMultiplier: number = 1): void {
-    this.scheduleZombie(difficultyMultiplier);
-    this.scheduleObstacle(difficultyMultiplier);
+  start(difficultyMultiplier: number = 1, itemMultiplier: number = 1): void {
+    this.currentMultiplier = difficultyMultiplier;
+    this.currentItemMultiplier = itemMultiplier;
+    this.scheduleZombie();
+    this.scheduleObstacle();
     this.scheduleCoin();
     this.scheduleFuel();
     this.scheduleHealth();
@@ -43,48 +47,52 @@ export class SpawnManager {
     this.healthTimer?.destroy();
   }
 
-  updateDifficulty(multiplier: number): void {
-    // Timers will use the multiplier on next schedule
+  updateDifficulty(multiplier: number, itemMultiplier: number = this.currentItemMultiplier): void {
+    this.currentMultiplier = multiplier;
+    this.currentItemMultiplier = itemMultiplier;
   }
 
-  private scheduleZombie(multiplier: number = 1): void {
-    const interval = Math.max(SPAWN.MIN_INTERVAL, SPAWN.ZOMBIE_INTERVAL_BASE / multiplier);
+  private scheduleZombie(): void {
+    const interval = Math.max(SPAWN.MIN_INTERVAL, SPAWN.ZOMBIE_INTERVAL_BASE / this.currentMultiplier);
     const variance = interval * 0.4;
 
     this.zombieTimer = this.scene.time.delayedCall(
       interval + (Math.random() - 0.5) * variance,
       () => {
-        this.spawnZombie(multiplier);
-        this.scheduleZombie(multiplier);
+        this.spawnZombie(this.currentMultiplier);
+        this.scheduleZombie();
       }
     );
   }
 
   private spawnZombie(multiplier: number): void {
     const x = GAME_WIDTH + 40 + Math.random() * 100;
-    const y = this.groundY;
 
-    // Runner and Fat zombies unlock at higher difficulty
+    // Zombie type selection by difficulty tier
     let type: ZombieType = 'NORMAL';
     if (multiplier > 1.3) {
       const roll = Math.random();
-      if (roll < 0.30) type = 'RUNNER';
-      else if (roll < 0.45 && multiplier > 1.8) type = 'FAT';
+      if (roll < 0.20) type = 'RUNNER';
+      else if (roll < 0.30 && multiplier > 1.8) type = 'FAT';
+      else if (roll < 0.45 && multiplier > 1.5) type = 'CRAWLER';
     }
+
+    // Crawlers spawn at mid-height so players can slide under them
+    const y = type === 'CRAWLER' ? this.groundY - 30 : this.groundY;
 
     const zombie = new Zombie(this.scene, x, y, type);
     this.zombies.add(zombie);
   }
 
-  private scheduleObstacle(multiplier: number = 1): void {
-    const interval = Math.max(SPAWN.MIN_INTERVAL, SPAWN.OBSTACLE_INTERVAL_BASE / multiplier);
+  private scheduleObstacle(): void {
+    const interval = Math.max(SPAWN.MIN_INTERVAL, SPAWN.OBSTACLE_INTERVAL_BASE / this.currentMultiplier);
     const variance = interval * 0.3;
 
     this.obstacleTimer = this.scene.time.delayedCall(
       interval + (Math.random() - 0.5) * variance,
       () => {
         this.spawnObstacle();
-        this.scheduleObstacle(multiplier);
+        this.scheduleObstacle();
       }
     );
   }
@@ -131,23 +139,19 @@ export class SpawnManager {
   }
 
   private scheduleFuel(): void {
-    this.fuelTimer = this.scene.time.delayedCall(
-      SPAWN.FUEL_INTERVAL + Math.random() * 3000,
-      () => {
-        this.spawnItem('fuel');
-        this.scheduleFuel();
-      }
-    );
+    const interval = (SPAWN.FUEL_INTERVAL + Math.random() * 3000) / this.currentItemMultiplier;
+    this.fuelTimer = this.scene.time.delayedCall(interval, () => {
+      this.spawnItem('fuel');
+      this.scheduleFuel();
+    });
   }
 
   private scheduleHealth(): void {
-    this.healthTimer = this.scene.time.delayedCall(
-      SPAWN.HEALTH_INTERVAL + Math.random() * 5000,
-      () => {
-        this.spawnItem('health');
-        this.scheduleHealth();
-      }
-    );
+    const interval = (SPAWN.HEALTH_INTERVAL + Math.random() * 5000) / this.currentItemMultiplier;
+    this.healthTimer = this.scene.time.delayedCall(interval, () => {
+      this.spawnItem('health');
+      this.scheduleHealth();
+    });
   }
 
   private spawnItem(type: ItemType): void {

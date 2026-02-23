@@ -11,6 +11,7 @@ export class HUD {
   private hpText!: Phaser.GameObjects.Text;
   private scoreText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
+  private coinText!: Phaser.GameObjects.Text;
   private distanceText!: Phaser.GameObjects.Text;
   private fuelBar!: Phaser.GameObjects.Rectangle;
   private fuelText!: Phaser.GameObjects.Text;
@@ -59,6 +60,7 @@ export class HUD {
     this.createTopBar();
     this.createStatsBar();
     this.createButtonBar();
+    this.showOnboardingIfNeeded();
   }
 
   // ─── TOP BAR (y=0..HUD_TOP=44) ───────────────────
@@ -90,7 +92,16 @@ export class HUD {
     this.scoreText.setOrigin(0.5, 0.5);
     this.container.add(this.scoreText);
 
-    // Combo (right)
+    // Coin balance (right, before combo)
+    this.coinText = this.scene.add.text(GAME_WIDTH - 75, midY, '◎0', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '8px',
+      color: '#ffd700',
+    });
+    this.coinText.setOrigin(1, 0.5);
+    this.container.add(this.coinText);
+
+    // Combo (rightmost)
     this.comboText = this.scene.add.text(GAME_WIDTH - 8, midY, '', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '9px',
@@ -310,7 +321,7 @@ export class HUD {
     });
   }
 
-  update(hp: number, maxHp: number, score: number, combo: number, distance: number, fuel: number): void {
+  update(hp: number, maxHp: number, score: number, combo: number, distance: number, fuel: number, coinBalance: number = 0): void {
     // HP
     const filledBlocks = '█'.repeat(hp);
     const emptyBlocks = '░'.repeat(maxHp - hp);
@@ -344,6 +355,9 @@ export class HUD {
     } else {
       this.comboText.setVisible(false);
     }
+
+    // Coin balance
+    this.coinText.setText(`◎${coinBalance}`);
 
     // Distance
     this.distanceText.setText(`${distance}m`);
@@ -521,6 +535,33 @@ export class HUD {
         alert.destroy();
         glow.destroy();
       },
+    });
+  }
+
+  private showOnboardingIfNeeded(): void {
+    const done = localStorage.getItem('zc_onboarded');
+    if (done) return;
+    localStorage.setItem('zc_onboarded', '1');
+
+    const btnAreaY = GAME_HEIGHT - HUD_BUTTONS;
+    const hints = [
+      { x: GAME_WIDTH / 6,     label: '▼\n슬라이드', color: '#ffb000' },
+      { x: GAME_WIDTH / 2,     label: '▲\n점프',     color: '#00ff41' },
+      { x: GAME_WIDTH * 5 / 6, label: '⚔\n공격',     color: '#ff2222' },
+    ];
+
+    const elements = hints.map(({ x, label, color }) =>
+      this.scene.add.text(x, btnAreaY - 18, label, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '9px', color, align: 'center', lineSpacing: 4,
+        stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5, 1).setDepth(150).setAlpha(0)
+    );
+
+    this.scene.tweens.add({
+      targets: elements, alpha: 0.9,
+      duration: 300, hold: 2500, yoyo: true,
+      onComplete: () => elements.forEach(e => e.destroy()),
     });
   }
 

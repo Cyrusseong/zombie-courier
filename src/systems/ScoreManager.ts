@@ -8,6 +8,25 @@ export class ScoreManager {
 
   private comboTimer: number = 0;
   private readonly COMBO_TIMEOUT = 2000;
+  private _coinBalance: number;
+
+  constructor() {
+    this._coinBalance = parseInt(localStorage.getItem('zc_coins') || '0', 10);
+  }
+
+  get coinBalance(): number { return this._coinBalance; }
+
+  addCoins(amount: number): void {
+    this._coinBalance += amount;
+    localStorage.setItem('zc_coins', this._coinBalance.toString());
+  }
+
+  spendCoins(amount: number): boolean {
+    if (this._coinBalance < amount) return false;
+    this._coinBalance -= amount;
+    localStorage.setItem('zc_coins', this._coinBalance.toString());
+    return true;
+  }
 
   get comboMultiplier(): number {
     if (this.combo < 3) return 1;
@@ -37,6 +56,7 @@ export class ScoreManager {
   addCoin(value: number = 10): void {
     this.coinsCollected++;
     this.score += value;
+    this.addCoins(1);
   }
 
   addNearMiss(): number {

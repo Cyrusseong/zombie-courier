@@ -277,6 +277,31 @@ export class BootScene extends Phaser.Scene {
     g = this.gfx();
     this.drawPixelMap(g, fatMap, fatPalette, 2);
     this.tex(g, 'zombie_fat', 44, 44);
+
+    // Crawler Zombie: 20×10 pixels @ 2x = 40×20px
+    // Flat, wide, mid-height zombie — slide under it
+    // K=darkest green, D=dark green, G=normal green, R=red eyes
+    const crawlerPalette: Record<string, number> = {
+      K: 0x115511,
+      D: 0x227722,
+      G: 0x44bb44,
+      R: 0xff0000,
+    };
+    const crawlerMap = [
+      '....................',
+      '....KKKKKKKKKKKKK...',
+      'GKKKKRKKKKKRKKKKKKG.',
+      'GKKKKKKKKKKKKKKKKKGG',
+      '.DDDDDDDDDDDDDDDDDD.',
+      '..KKK...........KKK.',
+      '..GGG...........GGG.',
+      '....................',
+      '....................',
+      '....................',
+    ];
+    g = this.gfx();
+    this.drawPixelMap(g, crawlerMap, crawlerPalette, 2);
+    this.tex(g, 'zombie_crawler', 40, 20);
   }
 
   // ─── OBSTACLE ASSETS ─────────────────────────────

@@ -115,6 +115,25 @@ export const ZOMBIE_TYPES = {
   CRAWLER: { speed: 60, hp: 1, score: 80, color: 0x115511 },
 };
 
+export const NEAR_MISS = {
+  MIN_DIST: 70,   // 이 거리 이내로 좀비가 지나치면 니어미스
+  MAX_DIST: 110,  // 이 거리 이상이면 니어미스 아님
+  POINTS: 30,
+};
+
+export const MILESTONE = {
+  DISTANCES: [500, 1000, 1500, 2000, 3000, 5000, 7500, 10000], // 배송 완료 거리(m)
+  BONUS_POINTS: 1000,
+  FUEL_REFILL: 25, // 연료 +25%
+};
+
+export const ZONE_NAMES = ['도심', '고속도로', '산업지대', '교외', '다리/터널'];
+
+export const REVIVAL = {
+  COST: 100,        // 부활 코인 비용
+  COUNTDOWN: 3,     // 카운트다운 초
+};
+
 export const PHASER_CONFIG: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',

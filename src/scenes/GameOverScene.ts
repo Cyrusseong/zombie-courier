@@ -27,8 +27,12 @@ export class GameOverScene extends Phaser.Scene {
 
   private submitScore(score: number): void {
     try {
+      // Auto-generate a persistent player ID on first play
+      if (!localStorage.getItem('3sec-player-id')) {
+        const id = 'zc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        localStorage.setItem('3sec-player-id', id);
+      }
       const playerId = localStorage.getItem('3sec-player-id');
-      if (!playerId) return;
 
       fetch('https://3sec.games/api/leaderboard', {
         method: 'POST',

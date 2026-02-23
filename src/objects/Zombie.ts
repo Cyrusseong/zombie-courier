@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ZOMBIE_TYPES, GAME_WIDTH } from '../config';
 
-export type ZombieType = 'NORMAL' | 'RUNNER' | 'FAT';
+export type ZombieType = 'NORMAL' | 'RUNNER' | 'FAT' | 'CRAWLER';
 
 export class Zombie extends Phaser.GameObjects.Sprite {
   declare body: Phaser.Physics.Arcade.Body;
@@ -13,7 +13,10 @@ export class Zombie extends Phaser.GameObjects.Sprite {
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: ZombieType) {
     const config = ZOMBIE_TYPES[type];
-    const textureKey = type === 'NORMAL' ? 'zombie_normal' : type === 'RUNNER' ? 'zombie_runner' : 'zombie_fat';
+    const textureKey = type === 'NORMAL' ? 'zombie_normal'
+      : type === 'RUNNER' ? 'zombie_runner'
+      : type === 'FAT' ? 'zombie_fat'
+      : 'zombie_crawler';
 
     super(scene, x, y, textureKey);
 
@@ -30,6 +33,13 @@ export class Zombie extends Phaser.GameObjects.Sprite {
       this.body.setOffset(4, 4);
       this.setOrigin(0.5, 1);
       this.setScale(1.5);
+    } else if (type === 'CRAWLER') {
+      // Mid-height — player must slide under (standing body hits, slide body clears)
+      this.body.setAllowGravity(false);
+      this.body.setSize(36, 16);
+      this.body.setOffset(2, 0);
+      this.setOrigin(0.5, 1);
+      this.setScale(1.0);
     } else {
       this.body.setSize(24, 36);
       this.body.setOffset(4, 6);
@@ -37,15 +47,27 @@ export class Zombie extends Phaser.GameObjects.Sprite {
       this.setScale(type === 'RUNNER' ? 1.2 : 1.3);
     }
 
-    // Wobble animation
-    scene.tweens.add({
-      targets: this,
-      angle: { from: -3, to: 3 },
-      duration: 200 + Math.random() * 200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    // Wobble animation — crawlers pulse instead of rotate
+    if (type === 'CRAWLER') {
+      scene.tweens.add({
+        targets: this,
+        scaleX: { from: 0.95, to: 1.05 },
+        scaleY: { from: 0.92, to: 1.08 },
+        duration: 220 + Math.random() * 160,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    } else {
+      scene.tweens.add({
+        targets: this,
+        angle: { from: -3, to: 3 },
+        duration: 200 + Math.random() * 200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
   }
 
   takeDamage(amount: number): boolean {
