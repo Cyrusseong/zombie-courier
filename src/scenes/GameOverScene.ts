@@ -34,7 +34,7 @@ export class GameOverScene extends Phaser.Scene {
       }
       const playerId = localStorage.getItem('3sec-player-id');
 
-      fetch('https://3sec.games/api/leaderboard', {
+      fetch('https://www.3secgames.app/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
